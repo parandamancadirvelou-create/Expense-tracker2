@@ -10,7 +10,7 @@ import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/f
 const auth = window.auth;
 const db = window.db;
 
-// Auth
+// ================= AUTH =================
 const authBox = document.getElementById("authBox");
 const appBox = document.getElementById("appBox");
 
@@ -55,7 +55,7 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
-// Tabs
+// ================= TABS =================
 function showTab(tab){
   document.querySelectorAll(".tab-content").forEach(t => t.style.display="none");
   document.getElementById(`${tab}-tab`).style.display="block";
@@ -93,10 +93,11 @@ transactionForm.addEventListener("submit", e => {
   transactionForm.reset();
 });
 
-function renderTransactions(){
+function renderTransactions() {
   const tbody = document.querySelector("#transaction-table tbody");
   tbody.innerHTML = "";
-  transactions.forEach((t,i)=>{
+
+  transactions.forEach((t, i) => {
     tbody.innerHTML += `<tr>
       <td>${t.name}</td>
       <td>${t.amount}</td>
@@ -244,6 +245,6 @@ async function save(){
   }
 }
 
-// Init
+// ================= Init =================
 showTab("transactions");
 updateInvestmentSelect();
