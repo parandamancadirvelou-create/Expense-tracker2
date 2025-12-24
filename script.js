@@ -1,257 +1,105 @@
-// ================== DATA STORAGE ==================
-let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
-let investments = JSON.parse(localStorage.getItem('investments')) || [];
-let selectedCurrency = 'USD';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// ================== TAB CONTROL ==================
-const tabs = {
-    transactions: document.getElementById('transactions-tab'),
-    investments: document.getElementById('investments-tab'),
-    charts: document.getElementById('charts-tab')
+import {
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// Références aux éléments HTML
+const authBox = document.getElementById("authBox");
+const appBox = document.getElementById("appBox");
+
+const loginBtn = document.getElementById("login");
+const registerBtn = document.getElementById("register");
+const logoutBtn = document.getElementById("logout");
+
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+
+const transactionForm = document.getElementById("transaction-form");
+const transactionsTbody = document.getElementById("transactions");
+
+const auth = window.auth;
+const db = window.db;
+
+// LOGIN
+loginBtn.onclick = async () => {
+  try {
+    await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+  } catch(e) { alert(e.message); }
 };
 
-function showTab(tab){
-    for(const key in tabs) tabs[key].style.display = 'none';
-    tabs[tab].style.display = 'block';
-    document.querySelectorAll('.tabs button').forEach(btn=>btn.classList.remove('active'));
-    document.getElementById('tab-'+tab).classList.add('active');
-    if(tab==='charts') renderChart();
-}
+// REGISTER
+registerBtn.onclick = async () => {
+  try {
+    await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+  } catch(e) { alert(e.message); }
+};
 
-document.getElementById('tab-transactions').addEventListener('click', ()=>showTab('transactions'));
-document.getElementById('tab-investments').addEventListener('click', ()=>showTab('investments'));
-document.getElementById('tab-charts').addEventListener('click', ()=>showTab('charts'));
+// LOGOUT
+logoutBtn.onclick = async () => {
+  await signOut(auth);
+};
 
-// ================== TRANSACTIONS ==================
-const transactionForm = document.getElementById('transaction-form');
-const transactionTableBody = document.querySelector('#transaction-table tbody');
-
-transactionForm.addEventListener('submit', e=>{
-    e.preventDefault();
-    const name = document.getElementById('name').value;
-    const amount = parseFloat(document.getElementById('amount').value);
-    const type = document.getElementById('type').value;
-    const category = document.getElementById('category').value;
-    const date = document.getElementById('date').value;
-    const currency = document.getElementById('currency').value;
-    selectedCurrency = currency;
-
-    transactions.push({name, amount, type, category, date, currency});
-    saveData();
-    transactionForm.reset();
+// SURVEILLER L'ÉTAT AUTH
+onAuthStateChanged(auth, user => {
+  if(user){
+    authBox.style.display = "none";
+    appBox.style.display = "block";
+    loadTransactions(user.uid);
+  } else {
+    authBox.style.display = "block";
+    appBox.style.display = "none";
+  }
 });
 
-function renderTransactions(){
-    transactionTableBody.innerHTML = '';
-    transactions.forEach((t, i)=>{
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${t.name}</td>
-            <td>${t.amount.toFixed(2)}</td>
-            <td>${t.type}</td>
-            <td>${t.category}</td>
-            <td>${t.date}</td>
-            <td>${t.currency}</td>
-            <td>
-                <button onclick="editTransaction(${i})">Edit</button>
-                <button onclick="deleteTransaction(${i})">Delete</button>
-            </td>
-        `;
-        transactionTableBody.appendChild(row);
-    });
-}
+// AJOUTER TRANSACTION
+transactionForm.addEventListener("submit", async e => {
+  e.preventDefault();
+  const user = auth.currentUser;
+  if(!user) return;
 
-function deleteTransaction(index){
-    transactions.splice(index,1);
-    saveData();
-}
+  await addDoc(collection(db, "users", user.uid, "transactions"), {
+    name: document.getElementById("name").value,
+    amount: document.getElementById("amount").value,
+    type: document.getElementById("type").value,
+    date: document.getElementById("date").value
+  });
 
-function editTransaction(index){
-    const t = transactions[index];
-    document.getElementById('name').value = t.name;
-    document.getElementById('amount').value = t.amount;
-    document.getElementById('type').value = t.type;
-    document.getElementById('category').value = t.category;
-    document.getElementById('date').value = t.date;
-    document.getElementById('currency').value = t.currency;
-    transactions.splice(index,1); // remove original, will be overwritten on save
-}
-
-// ================== INVESTMENTS ==================
-const investmentForm = document.getElementById('investment-form');
-const investmentTableBody = document.querySelector('#investment-table tbody');
-const selectInvestment = document.getElementById('select-investment');
-const monthlyInterestBtn = document.getElementById('add-monthly-interest');
-const interestAmountInput = document.getElementById('interest-amount');
-
-investmentForm.addEventListener('submit', e=>{
-    e.preventDefault();
-    const name = document.getElementById('inv-name').value;
-    const principal = parseFloat(document.getElementById('inv-amount').value);
-    const category = document.getElementById('inv-category').value;
-    const interestRate = parseFloat(document.getElementById('inv-interest').value);
-    const startDate = document.getElementById('inv-date').value;
-    const currency = document.getElementById('inv-currency').value;
-
-    investments.push({name, principal, category, interestRate, startDate, currency});
-    saveData();
-    investmentForm.reset();
+  e.target.reset();
+  loadTransactions(user.uid);
 });
 
-// Update investment dropdown
-function updateInvestmentDropdown() {
-    selectInvestment.innerHTML = '<option value="">-- Select Investment --</option>';
-    investments.forEach((inv,i)=>{
-        const option = document.createElement('option');
-        option.value = i;
-        option.textContent = inv.name;
-        selectInvestment.appendChild(option);
-    });
+// CHARGER LES TRANSACTIONS
+async function loadTransactions(uid){
+  transactionsTbody.innerHTML = "";
+  const snapshot = await getDocs(collection(db, "users", uid, "transactions"));
+  snapshot.forEach(docSnap => {
+    const t = docSnap.data();
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${t.name}</td>
+      <td>${t.amount}</td>
+      <td>${t.type}</td>
+      <td>${t.date}</td>
+      <td><button onclick="deleteTransaction('${docSnap.id}')">❌</button></td>
+    `;
+    transactionsTbody.appendChild(tr);
+  });
 }
 
-// Add monthly interest for selected investment
-monthlyInterestBtn.addEventListener('click', ()=>{
-    const selectedMonth = document.getElementById('interest-date').value;
-    const selectedIndex = selectInvestment.value;
-    if(selectedIndex === "" || !selectedMonth){
-        alert('Please select an investment and a month.');
-        return;
-    }
-    const inv = investments[selectedIndex];
-    const [year, month] = selectedMonth.split('-').map(Number);
-    const monthStr = `${year}-${String(month).padStart(2,'0')}`;
-    const interestDate = new Date(year, month-1, 1);
-
-    let interestAmount = parseFloat(interestAmountInput.value);
-    if(isNaN(interestAmount) || interestAmount <= 0){
-        interestAmount = inv.principal * inv.interestRate / 100;
-    }
-
-    transactions.push({
-        name: `${inv.name} Interest (${monthStr})`,
-        amount: interestAmount,
-        type: 'income',
-        category: 'Investment Interest',
-        date: interestDate.toISOString().slice(0,10),
-        currency: inv.currency
-    });
-
-    saveData();
-    alert(`Monthly interest for ${inv.name} added for ${monthStr}.`);
-});
-
-function renderInvestments(){
-    investmentTableBody.innerHTML = '';
-    investments.forEach((inv,i)=>{
-        const accInterest = calculateAccumulatedInterest(inv);
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${inv.name}</td>
-            <td>${inv.principal.toFixed(2)}</td>
-            <td>${inv.interestRate}%</td>
-            <td>${inv.currency}</td>
-            <td>${inv.startDate}</td>
-            <td>${accInterest.toFixed(2)}</td>
-            <td><button onclick="deleteInvestment(${i})">Delete</button></td>
-        `;
-        investmentTableBody.appendChild(row);
-    });
-    updateInvestmentDropdown();
-}
-
-function deleteInvestment(index){
-    investments.splice(index,1);
-    saveData();
-}
-
-// ================== INTEREST CALCULATION ==================
-function calculateAccumulatedInterest(inv){
-    const today = new Date();
-    const start = new Date(inv.startDate);
-    let months = (today.getFullYear()-start.getFullYear())*12 + (today.getMonth()-start.getMonth());
-    if(months<0) months = 0;
-    return inv.principal * inv.interestRate/100 * months;
-}
-
-// ================== CHART ==================
-let overviewChart;
-function renderChart(){
-    const monthSet = new Set();
-    transactions.forEach(t=>monthSet.add(t.date.slice(0,7)));
-    investments.forEach(inv=>monthSet.add(inv.startDate.slice(0,7)));
-    const months = Array.from(monthSet).sort();
-
-    const incomeData = months.map(m=>transactions.filter(t=>t.type==='income' && t.date.startsWith(m) && t.currency===selectedCurrency).reduce((a,b)=>a+b.amount,0));
-    const expenseData = months.map(m=>transactions.filter(t=>t.type==='expense' && t.date.startsWith(m) && t.currency===selectedCurrency).reduce((a,b)=>a+b.amount,0));
-    const investmentData = months.map(m=>{
-        return investments.filter(inv=>inv.currency===selectedCurrency).reduce((sum,inv)=>{
-            const monthInterest = calculateInterestUpToMonth(inv,m);
-            return sum+monthInterest;
-        },0);
-    });
-
-    const ctx = document.getElementById('overviewChart').getContext('2d');
-    if(overviewChart) overviewChart.destroy();
-
-    overviewChart = new Chart(ctx,{
-        type:'bar',
-        data:{
-            labels:months,
-            datasets:[
-                {label:'Income', data:incomeData, backgroundColor:'green'},
-                {label:'Expenses', data:expenseData, backgroundColor:'red'},
-                {label:'Investments (Interest)', data:investmentData, backgroundColor:'blue'}
-            ]
-        },
-        options:{responsive:true, scales:{y:{beginAtZero:true}}}
-    });
-}
-
-function calculateInterestUpToMonth(inv,monthStr){
-    const [year, mon] = monthStr.split('-').map(Number);
-    const monthDate = new Date(year, mon-1, 1);
-    const startDate = new Date(inv.startDate);
-    let months = (monthDate.getFullYear()-startDate.getFullYear())*12 + (monthDate.getMonth()-startDate.getMonth()) + 1;
-    if(months<0) months=0;
-    return inv.principal * inv.interestRate/100 * months;
-}
-
-// ================== SAVE / LOAD ==================
-function saveData(){
-    localStorage.setItem('transactions', JSON.stringify(transactions));
-    localStorage.setItem('investments', JSON.stringify(investments));
-    renderTransactions();
-    renderInvestments();
-}
-
-// ================== INITIAL RENDER ==================
-renderTransactions();
-renderInvestments();
-showTab('transactions');
-
-// ================== CSV EXPORT ==================
-function exportCSV(){
-    let csv = "Name,Amount/Principal,Type/Interest%,Category,Date,Currency\n";
-    transactions.forEach(t=>{
-        csv+=`${t.name},${t.amount},${t.type},${t.category},${t.date},${t.currency}\n`;
-    });
-    investments.forEach(inv=>{
-        const accInterest = calculateAccumulatedInterest(inv).toFixed(2);
-        csv+=`${inv.name},${inv.principal},Investment,${inv.category},${inv.startDate},${inv.currency}\n`;
-        csv+=`${inv.name} (Interest),${accInterest},Accumulated Interest,${inv.category},${inv.startDate},${inv.currency}\n`;
-    });
-
-    const encodedUri = encodeURI("data:text/csv;charset=utf-8,"+csv);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download","tracker_export.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-document.addEventListener('keydown', e=>{
-    if(e.ctrlKey && e.key==='e'){ // Ctrl+E to export
-        exportCSV();
-    }
-});
+// SUPPRIMER TRANSACTION
+window.deleteTransaction = async id => {
+  const user = auth.currentUser;
+  if(!user) return;
+  await deleteDoc(doc(db, "users", user.uid, "transactions", id));
+  loadTransactions(user.uid);
+};
