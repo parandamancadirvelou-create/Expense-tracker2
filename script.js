@@ -6,19 +6,16 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 import {
-  getFirestore,
   doc,
   setDoc,
   getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* ================= INIT FIRESTORE ================= */
-
+/* ================= INIT ================= */
 const auth = window.auth;
 const db = window.db;
 
 /* ================= AUTH ================= */
-
 const authBox = document.getElementById("authBox");
 const appBox = document.getElementById("appBox");
 
@@ -29,14 +26,15 @@ const loginBtn = document.getElementById("login");
 const registerBtn = document.getElementById("register");
 const logoutBtn = document.getElementById("logout");
 
+let transactions = [];
+let investments = [];
+
 // Login
 loginBtn.addEventListener("click", async () => {
   try {
     const userCred = await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
     console.log("Connecté :", userCred.user.email);
-  } catch (e) {
-    alert(e.message);
-  }
+  } catch (e) { alert(e.message); }
 });
 
 // Register
@@ -44,18 +42,13 @@ registerBtn.addEventListener("click", async () => {
   try {
     const userCred = await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
     console.log("Compte créé :", userCred.user.email);
-  } catch (e) {
-    alert(e.message);
-  }
+  } catch (e) { alert(e.message); }
 });
 
 // Logout
 logoutBtn.addEventListener("click", () => signOut(auth));
 
-// AuthState + charger les données Firestore
-let transactions = [];
-let investments = [];
-
+// AuthState
 onAuthStateChanged(auth, async user => {
   if (user) {
     authBox.style.display = "none";
@@ -82,11 +75,6 @@ onAuthStateChanged(auth, async user => {
 });
 
 /* ================= TABS ================= */
-
-const tabTransactions = document.getElementById("tab-transactions");
-const tabInvestments = document.getElementById("tab-investments");
-const tabCharts = document.getElementById("tab-charts");
-
 function showTab(tab) {
   document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
   document.getElementById(`${tab}-tab`).style.display = "block";
@@ -94,32 +82,22 @@ function showTab(tab) {
   document.getElementById(`tab-${tab}`).classList.add("active");
 }
 
-tabTransactions.onclick = () => showTab("transactions");
-tabInvestments.onclick = () => showTab("investments");
-tabCharts.onclick = () => showTab("charts");
+document.getElementById("tab-transactions").onclick = () => showTab("transactions");
+document.getElementById("tab-investments").onclick = () => showTab("investments");
+document.getElementById("tab-charts").onclick = () => showTab("charts");
 
 /* ================= TRANSACTIONS ================= */
-
 const transactionForm = document.getElementById("transaction-form");
-const nameInput = document.getElementById("name");
-const amountInput = document.getElementById("amount");
-const typeInput = document.getElementById("type");
-const categoryInput = document.getElementById("category");
-const dateInput = document.getElementById("date");
-const currencyInput = document.getElementById("currency");
-
 transactionForm.addEventListener("submit", e => {
   e.preventDefault();
+  const name = document.getElementById("name").value;
+  const amount = +document.getElementById("amount").value;
+  const type = document.getElementById("type").value;
+  const category = document.getElementById("category").value;
+  const date = document.getElementById("date").value;
+  const currency = document.getElementById("currency").value;
 
-  transactions.push({
-    name: nameInput.value,
-    amount: +amountInput.value,
-    type: typeInput.value,
-    category: categoryInput.value,
-    date: dateInput.value,
-    currency: currencyInput.value
-  });
-
+  transactions.push({ name, amount, type, category, date, currency });
   save();
   transactionForm.reset();
 });
@@ -128,51 +106,41 @@ function renderTransactions() {
   const tbody = document.querySelector("#transaction-table tbody");
   tbody.innerHTML = "";
   transactions.forEach((t, i) => {
-    tbody.innerHTML += `
-      <tr>
-        <td>${t.name}</td>
-        <td>${t.amount}</td>
-        <td>${t.type}</td>
-        <td>${t.category}</td>
-        <td>${t.date}</td>
-        <td>${t.currency}</td>
-        <td><button onclick="delT(${i})">X</button></td>
-      </tr>`;
+    tbody.innerHTML += `<tr>
+      <td>${t.name}</td>
+      <td>${t.amount}</td>
+      <td>${t.type}</td>
+      <td>${t.category}</td>
+      <td>${t.date}</td>
+      <td>${t.currency}</td>
+      <td><button onclick="delT(${i})">X</button></td>
+    </tr>`;
   });
 }
-
-window.delT = i => {
-  transactions.splice(i, 1);
-  save();
-};
+window.delT = i => { transactions.splice(i,1); save(); };
 
 /* ================= INVESTMENTS ================= */
-
-// Récupération du formulaire et des inputs
 const investmentForm = document.getElementById("investment-form");
 const invNameInput = document.getElementById("inv-name");
 const invAmountInput = document.getElementById("inv-amount");
 const invInterestInput = document.getElementById("inv-interest");
 const invDateInput = document.getElementById("inv-date");
 const invCurrencyInput = document.getElementById("inv-currency");
+const invCategoryInput = document.getElementById("inv-category");
 
 const selectInvestment = document.getElementById("select-investment");
 const interestDateInput = document.getElementById("interest-date");
 const interestAmountInput = document.getElementById("interest-amount");
 const addMonthlyInterestBtn = document.getElementById("add-monthly-interest");
 
-// Ajouter un investissement
 investmentForm.addEventListener("submit", async e => {
   e.preventDefault();
-
-  if (!invNameInput.value || !invAmountInput.value) {
-    alert("Veuillez saisir un nom et un capital.");
-    return;
-  }
+  if(!invNameInput.value || !invAmountInput.value) return alert("Nom et capital requis");
 
   investments.push({
     name: invNameInput.value,
     principal: +invAmountInput.value,
+    category: invCategoryInput.value,
     interest: +invInterestInput.value,
     date: invDateInput.value,
     currency: invCurrencyInput.value,
@@ -180,124 +148,82 @@ investmentForm.addEventListener("submit", async e => {
   });
 
   await save();
-
   investmentForm.reset();
-  updateInvestmentSelect();
 });
 
-// Ajouter un intérêt mensuel
 addMonthlyInterestBtn.addEventListener("click", async () => {
   const idx = parseInt(selectInvestment.value);
-  if (isNaN(idx)) {
-    alert("Veuillez sélectionner un investissement.");
-    return;
-  }
-
+  if(isNaN(idx)) return alert("Sélectionnez un investissement");
   const inv = investments[idx];
   let interestValue = parseFloat(interestAmountInput.value);
-
-  if (isNaN(interestValue) || interestValue <= 0) {
-    interestValue = inv.principal * inv.interest / 100;
-  }
-
-  inv.accumulatedInterest = (inv.accumulatedInterest || 0) + interestValue;
-
+  if(isNaN(interestValue) || interestValue<=0) interestValue = inv.principal*inv.interest/100;
+  inv.accumulatedInterest = (inv.accumulatedInterest||0)+interestValue;
   await save();
-
-  selectInvestment.value = "";
-  interestDateInput.value = "";
-  interestAmountInput.value = "";
+  selectInvestment.value=""; interestDateInput.value=""; interestAmountInput.value="";
   alert(`Intérêt ajouté : ${interestValue.toFixed(2)} ${inv.currency}`);
 });
 
-// Mettre à jour le select des investissements
 function updateInvestmentSelect() {
-  selectInvestment.innerHTML = `<option value="">-- Select Investment --</option>`;
-  investments.forEach((inv, idx) => {
-    const option = document.createElement("option");
-    option.value = idx;
-    option.textContent = inv.name;
+  selectInvestment.innerHTML=`<option value="">-- Select Investment --</option>`;
+  investments.forEach((inv, idx)=>{
+    const option=document.createElement("option");
+    option.value=idx;
+    option.textContent=inv.name;
     selectInvestment.appendChild(option);
   });
 }
 
-/* ================= RENDER INVESTMENTS ================= */
-
-function renderInvestments() {
-  const tbody = document.querySelector("#investment-table tbody");
-  tbody.innerHTML = "";
-
-  investments.forEach((i, idx) => {
-    tbody.innerHTML += `
-      <tr>
-        <td>${i.name}</td>
-        <td>${i.principal}</td>
-        <td>${i.interest}%</td>
-        <td>${i.currency}</td>
-        <td>${i.date}</td>
-        <td>${(i.accumulatedInterest || 0).toFixed(2)}</td>
-        <td>
-          <button onclick="editInvestment(${idx})">Éditer</button>
-          <button onclick="deleteInvestment(${idx})">X</button>
-        </td>
-      </tr>`;
+function renderInvestments(){
+  const tbody=document.querySelector("#investment-table tbody");
+  tbody.innerHTML="";
+  investments.forEach((i,idx)=>{
+    tbody.innerHTML+=`<tr>
+      <td>${i.name}</td>
+      <td>${i.principal}</td>
+      <td>${i.category}</td>
+      <td>${i.interest}%</td>
+      <td>${i.currency}</td>
+      <td>${i.date}</td>
+      <td>${(i.accumulatedInterest||0).toFixed(2)}</td>
+      <td>
+        <button onclick="editInvestment(${idx})">Éditer</button>
+        <button onclick="deleteInvestment(${idx})">X</button>
+      </td>
+    </tr>`;
   });
 }
 
-// Supprimer un investissement
-window.deleteInvestment = async idx => {
-  investments.splice(idx, 1);
-  await save();
-  updateInvestmentSelect();
-};
-
-// Éditer un investissement
-window.editInvestment = idx => {
-  const i = investments[idx];
-  invNameInput.value = i.name;
-  invAmountInput.value = i.principal;
-  invInterestInput.value = i.interest;
-  invDateInput.value = i.date;
-  invCurrencyInput.value = i.currency;
-
-  investments.splice(idx, 1);
-  renderInvestments();
-  updateInvestmentSelect();
+window.deleteInvestment=async idx=>{ investments.splice(idx,1); await save(); };
+window.editInvestment=idx=>{
+  const i=investments[idx];
+  invNameInput.value=i.name; invAmountInput.value=i.principal;
+  invCategoryInput.value=i.category; invInterestInput.value=i.interest;
+  invDateInput.value=i.date; invCurrencyInput.value=i.currency;
+  investments.splice(idx,1); renderInvestments(); updateInvestmentSelect();
 };
 
 /* ================= CSV ================= */
-
-const exportCsvBtn = document.getElementById("export-csv-btn");
-exportCsvBtn.onclick = () => {
-  let csv = "Name,Amount,Type,Category,Date,Currency\n";
-  transactions.forEach(t => {
-    csv += `${t.name},${t.amount},${t.type},${t.category},${t.date},${t.currency}\n`;
-  });
-
-  const a = document.createElement("a");
-  a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-  a.download = "export.csv";
-  a.click();
+document.getElementById("export-csv-btn").onclick=()=>{
+  let csv="Name,Amount,Type,Category,Date,Currency\n";
+  transactions.forEach(t=>csv+=`${t.name},${t.amount},${t.type},${t.category},${t.date},${t.currency}\n`);
+  const a=document.createElement("a");
+  a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
+  a.download="export.csv"; a.click();
 };
 
 /* ================= SAVE ================= */
-
-async function save() {
-  renderTransactions();
-  renderInvestments();
-  updateInvestmentSelect();
-
-  const user = auth.currentUser;
-  if (user) {
-    const userDocRef = doc(db, "users", user.uid);
-    await setDoc(userDocRef, { transactions, investments });
+async function save(){
+  renderTransactions(); renderInvestments(); updateInvestmentSelect();
+  const user=auth.currentUser;
+  if(user){
+    const userDocRef=doc(db,"users",user.uid);
+    await setDoc(userDocRef,{transactions,investments});
   } else {
-    localStorage.setItem("transactions", JSON.stringify(transactions));
-    localStorage.setItem("investments", JSON.stringify(investments));
+    localStorage.setItem("transactions",JSON.stringify(transactions));
+    localStorage.setItem("investments",JSON.stringify(investments));
   }
 }
 
 /* ================= INIT ================= */
-
 showTab("transactions");
 updateInvestmentSelect();
