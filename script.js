@@ -71,7 +71,6 @@ const transactionForm = document.getElementById("transaction-form");
 
 transactionForm.addEventListener("submit", e => {
   e.preventDefault();
-
   const newTransaction = {
     name: document.getElementById("name").value,
     amount: +document.getElementById("amount").value,
@@ -80,7 +79,6 @@ transactionForm.addEventListener("submit", e => {
     date: document.getElementById("date").value,
     currency: document.getElementById("currency").value
   };
-
   const editIndex = transactionForm.dataset.editIndex;
   if(editIndex !== undefined){
     transactions[editIndex] = newTransaction;
@@ -88,7 +86,6 @@ transactionForm.addEventListener("submit", e => {
   } else {
     transactions.push(newTransaction);
   }
-
   save();
   transactionForm.reset();
 });
@@ -96,7 +93,6 @@ transactionForm.addEventListener("submit", e => {
 function renderTransactions() {
   const tbody = document.querySelector("#transaction-table tbody");
   tbody.innerHTML = "";
-
   transactions.forEach((t, i) => {
     tbody.innerHTML += `<tr>
       <td>${t.name}</td>
@@ -142,7 +138,6 @@ const addMonthlyInterestBtn = document.getElementById("add-monthly-interest");
 
 investmentForm.addEventListener("submit", async e => {
   e.preventDefault();
-
   const newInvestment = {
     name: invNameInput.value,
     principal: +invAmountInput.value,
@@ -150,9 +145,9 @@ investmentForm.addEventListener("submit", async e => {
     interest: +invInterestInput.value,
     date: invDateInput.value,
     currency: invCurrencyInput.value,
-    accumulatedInterest: 0
+    accumulatedInterest: 0,
+    monthlyInterests: []
   };
-
   const editIndex = investmentForm.dataset.editIndex;
   if(editIndex !== undefined){
     investments[editIndex] = newInvestment;
@@ -160,7 +155,6 @@ investmentForm.addEventListener("submit", async e => {
   } else {
     investments.push(newInvestment);
   }
-
   await save();
   investmentForm.reset();
 });
@@ -169,12 +163,21 @@ addMonthlyInterestBtn.addEventListener("click", async ()=>{
   const idx = parseInt(selectInvestment.value);
   if(isNaN(idx)) return alert("Sélectionnez un investissement");
   const inv = investments[idx];
+
+  const month = interestDateInput.value;
+  if(!month) return alert("Sélectionnez un mois");
+
   let interestValue = parseFloat(interestAmountInput.value);
-  if(isNaN(interestValue) || interestValue <=0) interestValue = inv.principal * inv.interest / 100;
-  inv.accumulatedInterest = (inv.accumulatedInterest || 0) + interestValue;
+  if(isNaN(interestValue) || interestValue <= 0) interestValue = inv.principal * inv.interest / 100;
+
+  inv.monthlyInterests.push({ month, amount: interestValue });
+  inv.accumulatedInterest = inv.monthlyInterests.reduce((sum,m)=>sum+m.amount,0);
+
   await save();
-  selectInvestment.value = ""; interestDateInput.value = ""; interestAmountInput.value = "";
-  alert(`Intérêt ajouté : ${interestValue.toFixed(2)} ${inv.currency}`);
+  selectInvestment.value = "";
+  interestDateInput.value = "";
+  interestAmountInput.value = "";
+  alert(`Intérêt ajouté : ${interestValue.toFixed(2)} ${inv.currency} pour ${month}`);
 });
 
 function updateInvestmentSelect(){
@@ -190,6 +193,7 @@ function renderInvestments(){
   const tbody = document.querySelector("#investment-table tbody");
   tbody.innerHTML = "";
   investments.forEach((i,idx)=>{
+    const interestsDetail = i.monthlyInterests.map(m=>`${m.month}: ${m.amount.toFixed(2)}`).join("<br>");
     tbody.innerHTML += `<tr>
       <td>${i.name}</td>
       <td>${i.principal}</td>
@@ -197,7 +201,7 @@ function renderInvestments(){
       <td>${i.interest}%</td>
       <td>${i.currency}</td>
       <td>${i.date}</td>
-      <td>${(i.accumulatedInterest||0).toFixed(2)}</td>
+      <td>${(i.accumulatedInterest||0).toFixed(2)}<br>${interestsDetail}</td>
       <td>
         <button onclick="editInvestment(${idx})">Éditer</button>
         <button onclick="deleteInvestment(${idx})">X</button>
@@ -232,9 +236,59 @@ document.getElementById("export-csv-btn").onclick = () => {
   a.click();
 };
 
+// ================= Charts =================
+let transactionsChart, investmentsChart;
+
+function renderCharts(){
+  // Transactions
+  const incomeCategories = {}, expenseCategories = {};
+  transactions.forEach(t=>{
+    if(t.type==="income") incomeCategories[t.category] = (incomeCategories[t.category]||0)+t.amount;
+    if(t.type==="expense") expenseCategories[t.category] = (expenseCategories[t.category]||0)+t.amount;
+  });
+  const labels = [...new Set([...Object.keys(incomeCategories),...Object.keys(expenseCategories)])];
+
+  const ctxT = document.getElementById("transactionsChart").getContext("2d");
+  if(transactionsChart) transactionsChart.destroy();
+  transactionsChart = new Chart(ctxT,{
+    type:"bar",
+    data:{
+      labels,
+      datasets:[
+        { label:"Income", data:labels.map(l=>incomeCategories[l]||0), backgroundColor:"green" },
+        { label:"Expense", data:labels.map(l=>expenseCategories[l]||0), backgroundColor:"red" }
+      ]
+    },
+    options:{ responsive:true, plugins:{ legend:{ position:"top" } } }
+  });
+
+  // Investments
+  const invLabels = investments.map(i=>i.name);
+  const invPrincipal = investments.map(i=>i.principal);
+  const invInterest = investments.map(i=>i.accumulatedInterest||0);
+
+  const ctxI = document.getElementById("investmentsChart").getContext("2d");
+  if(investmentsChart) investmentsChart.destroy();
+  investmentsChart = new Chart(ctxI,{
+    type:"bar",
+    data:{
+      labels: invLabels,
+      datasets:[
+        { label:"Principal", data:invPrincipal, backgroundColor:"blue" },
+        { label:"Accumulated Interest", data:invInterest, backgroundColor:"orange" }
+      ]
+    },
+    options:{ responsive:true, plugins:{ legend:{ position:"top" } } }
+  });
+}
+
 // ================= Save =================
 async function save(){
-  renderTransactions(); renderInvestments(); updateInvestmentSelect();
+  renderTransactions(); 
+  renderInvestments(); 
+  updateInvestmentSelect();
+  renderCharts();
+
   const user = auth.currentUser;
   if(user){
     const userDocRef = doc(db,"users",user.uid);
