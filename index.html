@@ -67,56 +67,59 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
 
 <!-- INVESTMENTS -->
 <div id="investments-tab" class="tab-content" style="display:none;">
-        <div class="form-section">
-            <h2>Add Investment</h2>
-            <form id="investment-form">
-                <input type="text" id="inv-name" placeholder="Investment Name" required>
-                <input type="number" id="inv-amount" placeholder="Principal Amount" step="0.01" required>
-                <select id="inv-category" required>
-                    <option value="Stocks">Stocks</option>
-                    <option value="Crypto">Crypto</option>
-                    <option value="Real Estate">Real Estate</option>
-                    <option value="Other">Other</option>
-                </select>
-                <input type="number" id="inv-interest" placeholder="Monthly Interest %" step="0.01" required>
-                <input type="date" id="inv-date" required>
-                <select id="inv-currency">
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="GBP">GBP</option>
-                    <option value="INR">INR</option>
-                </select>
-                <button type="submit">Add Investment</button>
-            </form>
-     <h3>Add Monthly Interest</h3>
-            <label for="select-investment">Select Investment:</label>
-            <select id="select-investment">
-                <option value="">-- Select Investment --</option>
-            </select>
-            <label for="interest-date">Select Month for Interest:</label>
-            <input type="month" id="interest-date">
-            <label for="interest-amount">Enter Interest Amount (optional):</label>
-            <input type="number" id="interest-amount" placeholder="Interest Amount" step="0.01">
-            <button id="add-monthly-interest">Add Monthly Interest</button>
-        </div>
- <div class="transactions-section">
-            <h2>Investments</h2>
-            <table id="investment-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Principal</th>
-                        <th>Monthly Interest %</th>
-                        <th>Currency</th>
-                        <th>Start Date</th>
-                        <th>Accumulated Interest</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
+  <div class="form-section">
+    <h2>Add Investment</h2>
+    <form id="investment-form">
+        <input type="text" id="inv-name" placeholder="Investment Name" required>
+        <input type="number" id="inv-amount" placeholder="Principal Amount" step="0.01" required>
+        <select id="inv-category" required>
+            <option value="Stocks">Stocks</option>
+            <option value="Crypto">Crypto</option>
+            <option value="Real Estate">Real Estate</option>
+            <option value="Other">Other</option>
+        </select>
+        <input type="number" id="inv-interest" placeholder="Monthly Interest %" step="0.01" required>
+        <input type="date" id="inv-date" required>
+        <select id="inv-currency">
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+            <option value="INR">INR</option>
+        </select>
+        <button type="submit">Add Investment</button>
+    </form>
+
+    <h3>Add Monthly Interest</h3>
+    <label for="select-investment">Select Investment:</label>
+    <select id="select-investment">
+        <option value="">-- Select Investment --</option>
+    </select>
+    <label for="interest-date">Select Month for Interest:</label>
+    <input type="month" id="interest-date">
+    <label for="interest-amount">Enter Interest Amount (optional):</label>
+    <input type="number" id="interest-amount" placeholder="Interest Amount" step="0.01">
+    <button type="button" id="add-monthly-interest">Add Monthly Interest</button>
+  </div>
+
+  <div class="transactions-section">
+    <h2>Investments</h2>
+    <table id="investment-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Principal</th>
+                <th>Category</th>
+                <th>Monthly Interest %</th>
+                <th>Currency</th>
+                <th>Start Date</th>
+                <th>Accumulated Interest</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+  </div>
+</div>
 
 <div id="charts-tab" class="tab-content">
 <p>Charts à venir</p>
@@ -150,4 +153,3 @@ window.db = getFirestore(window.app);
 <script type="module" src="script.js"></script>
 </body>
 </html>
-
