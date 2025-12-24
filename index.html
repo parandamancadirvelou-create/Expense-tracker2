@@ -36,8 +36,8 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
 
 <div class="tabs">
   <button id="tab-transactions" class="active">Transactions</button>
-  <button id="tab-investments">Investments</button>
-  <button id="tab-charts">Charts</button>
+  <button id="tab-investments">Investissements</button>
+  <button id="tab-charts">Graphiques</button>
 </div>
 
 <!-- TRANSACTIONS -->
@@ -68,17 +68,17 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
 <!-- INVESTMENTS -->
 <div id="investments-tab" class="tab-content" style="display:none;">
   <div class="form-section">
-    <h2>Add Investment</h2>
+    <h2>Ajouter un investissement</h2>
     <form id="investment-form">
-        <input type="text" id="inv-name" placeholder="Investment Name" required>
-        <input type="number" id="inv-amount" placeholder="Principal Amount" step="0.01" required>
+        <input type="text" id="inv-name" placeholder="Nom de l'investissement" required>
+        <input type="number" id="inv-amount" placeholder="Montant principal" step="0.01" required>
         <select id="inv-category" required>
             <option value="Stocks">Stocks</option>
             <option value="Crypto">Crypto</option>
             <option value="Real Estate">Real Estate</option>
             <option value="Other">Other</option>
         </select>
-        <input type="number" id="inv-interest" placeholder="Monthly Interest %" step="0.01" required>
+        <input type="number" id="inv-interest" placeholder="Intérêt mensuel %" step="0.01" required>
         <input type="date" id="inv-date" required>
         <select id="inv-currency">
             <option value="USD">USD</option>
@@ -86,33 +86,33 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
             <option value="GBP">GBP</option>
             <option value="INR">INR</option>
         </select>
-        <button type="submit">Add Investment</button>
+        <button type="submit">Ajouter</button>
     </form>
 
-    <h3>Add Monthly Interest</h3>
-    <label for="select-investment">Select Investment:</label>
+    <h3>Ajouter un intérêt mensuel</h3>
+    <label for="select-investment">Sélectionner un investissement :</label>
     <select id="select-investment">
         <option value="">-- Select Investment --</option>
     </select>
-    <label for="interest-date">Select Month for Interest:</label>
+    <label for="interest-date">Mois :</label>
     <input type="month" id="interest-date">
-    <label for="interest-amount">Enter Interest Amount (optional):</label>
-    <input type="number" id="interest-amount" placeholder="Interest Amount" step="0.01">
-    <button type="button" id="add-monthly-interest">Add Monthly Interest</button>
+    <label for="interest-amount">Montant (optionnel) :</label>
+    <input type="number" id="interest-amount" placeholder="Montant" step="0.01">
+    <button type="button" id="add-monthly-interest">Ajouter l'intérêt</button>
   </div>
 
   <div class="transactions-section">
-    <h2>Investments</h2>
+    <h2>Investissements</h2>
     <table id="investment-table">
         <thead>
             <tr>
-                <th>Name</th>
+                <th>Nom</th>
                 <th>Principal</th>
-                <th>Category</th>
-                <th>Monthly Interest %</th>
-                <th>Currency</th>
-                <th>Start Date</th>
-                <th>Accumulated Interest</th>
+                <th>Catégorie</th>
+                <th>Intérêt mensuel %</th>
+                <th>Devise</th>
+                <th>Date de début</th>
+                <th>Intérêts accumulés</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -121,8 +121,11 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
   </div>
 </div>
 
+<!-- CHARTS -->
 <div id="charts-tab" class="tab-content">
-<p>Charts à venir</p>
+  <h2>Graphiques</h2>
+  <canvas id="transactionsChart" style="max-width:600px;"></canvas>
+  <canvas id="investmentsChart" style="max-width:600px; margin-top:30px;"></canvas>
 </div>
 
 </div>
@@ -134,7 +137,7 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-apiKey: "AIzaSyChlTQgk-BvdNf8jRskBY-kos_kCeQIWW0",
+  apiKey: "AIzaSyChlTQgk-BvdNf8jRskBY-kos_kCeQIWW0",
   authDomain: "expense-traker-247d1.firebaseapp.com",
   projectId: "expense-traker-247d1",
   storageBucket: "expense-traker-247d1.firebasestorage.app",
@@ -147,6 +150,9 @@ window.app = initializeApp(firebaseConfig);
 window.auth = getAuth(window.app);
 window.db = getFirestore(window.app);
 </script>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script type="module" src="script.js"></script>
 </body>
