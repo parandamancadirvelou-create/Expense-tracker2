@@ -240,44 +240,52 @@ document.getElementById("export-csv-btn").onclick = () => {
 let transactionsChart, investmentsChart;
 
 function renderCharts(){
-  // Transactions
-  const incomeCategories = {}, expenseCategories = {};
+  // --- Transactions par mois ---
+  const transactionByMonth = {};
   transactions.forEach(t=>{
-    if(t.type==="income") incomeCategories[t.category] = (incomeCategories[t.category]||0)+t.amount;
-    if(t.type==="expense") expenseCategories[t.category] = (expenseCategories[t.category]||0)+t.amount;
+    const month = t.date.slice(0,7);
+    if(!transactionByMonth[month]) transactionByMonth[month]={income:0,expense:0};
+    if(t.type==="income") transactionByMonth[month].income += t.amount;
+    if(t.type==="expense") transactionByMonth[month].expense += t.amount;
   });
-  const labels = [...new Set([...Object.keys(incomeCategories),...Object.keys(expenseCategories)])];
+  const months = Object.keys(transactionByMonth).sort();
+  const incomeData = months.map(m=>transactionByMonth[m].income);
+  const expenseData = months.map(m=>transactionByMonth[m].expense);
 
   const ctxT = document.getElementById("transactionsChart").getContext("2d");
   if(transactionsChart) transactionsChart.destroy();
   transactionsChart = new Chart(ctxT,{
     type:"bar",
-    data:{
-      labels,
-      datasets:[
-        { label:"Income", data:labels.map(l=>incomeCategories[l]||0), backgroundColor:"green" },
-        { label:"Expense", data:labels.map(l=>expenseCategories[l]||0), backgroundColor:"red" }
-      ]
-    },
+    data:{labels:months, datasets:[
+      {label:"Income", data:incomeData, backgroundColor:"green"},
+      {label:"Expense", data:expenseData, backgroundColor:"red"}
+    ]},
     options:{ responsive:true, plugins:{ legend:{ position:"top" } } }
   });
 
-  // Investments
-  const invLabels = investments.map(i=>i.name);
-  const invPrincipal = investments.map(i=>i.principal);
-  const invInterest = investments.map(i=>i.accumulatedInterest||0);
+  // --- Intérêts mensuels ---
+  const interestByMonth = {};
+  investments.forEach(inv=>{
+    inv.monthlyInterests.forEach(m=>{
+      if(!interestByMonth[m.month]) interestByMonth[m.month]=0;
+      interestByMonth[m.month] += m.amount;
+    });
+  });
+  const interestMonths = Object.keys(interestByMonth).sort();
+  const interestData = interestMonths.map(m=>interestByMonth[m]);
 
   const ctxI = document.getElementById("investmentsChart").getContext("2d");
   if(investmentsChart) investmentsChart.destroy();
   investmentsChart = new Chart(ctxI,{
-    type:"bar",
-    data:{
-      labels: invLabels,
-      datasets:[
-        { label:"Principal", data:invPrincipal, backgroundColor:"blue" },
-        { label:"Accumulated Interest", data:invInterest, backgroundColor:"orange" }
-      ]
-    },
+    type:"line",
+    data:{labels:interestMonths, datasets:[{
+      label:"Intérêts mensuels accumulés",
+      data:interestData,
+      backgroundColor:"rgba(255,165,0,0.3)",
+      borderColor:"orange",
+      fill:true,
+      tension:0.3
+    }]},
     options:{ responsive:true, plugins:{ legend:{ position:"top" } } }
   });
 }
