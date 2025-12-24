@@ -2,15 +2,136 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Expense Tracker Firebase</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-  body { font-family: sans-serif; padding: 20px; }
-  input, select, button { margin: 5px; padding:5px; }
-  table { border-collapse: collapse; margin-top: 10px; }
-  th, td { border:1px solid black; padding:5px; }
-</style>
+<title>Expense & Investment Tracker</title>
+<link rel="stylesheet" href="style.css">
 </head>
+<body>
+<div class="container">
+    <h1>Expense & Investment Tracker</h1>
+
+    <div class="tabs">
+        <button id="tab-transactions" class="active">Transactions</button>
+        <button id="tab-investments">Investments</button>
+        <button id="tab-charts">Charts</button>
+    </div>
+
+    <!-- TRANSACTIONS TAB -->
+    <div id="transactions-tab" class="tab-content">
+        <div class="form-section">
+            <h2>Add Transaction</h2>
+            <form id="transaction-form">
+                <input type="text" id="name" placeholder="Name" required>
+                <input type="number" id="amount" placeholder="Amount" step="0.01" required>
+                <select id="type" required>
+                    <option value="income">Income</option>
+                    <option value="expense">Expense</option>
+                </select>
+                <select id="category" required>
+                    <option value="">-- Select Category --</option>
+                    <optgroup label="Income">
+                        <option value="Salary">Salary</option> 
+                        <option value="Bonus">Bonus</option>
+                        <option value="Other">Other</option>
+                    </optgroup>
+                    <optgroup label="Expense">
+                        <option value="Food">Food</option>
+                        <option value="Transport">Transport</option>
+                        <option value="Rent">Rent</option>
+                        <option value="Other">Other</option>
+                    </optgroup>
+                </select>
+                <input type="date" id="date" required>
+                <select id="currency">
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="INR">INR</option>
+                </select>
+                <button type="submit">Add Transaction</button>
+            </form>
+        </div>
+        <div class="transactions-section">
+            <h2>Transactions</h2>
+            <table id="transaction-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Amount</th>
+                        <th>Type</th>
+                        <th>Category</th>
+                        <th>Date</th>
+                        <th>Currency</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- INVESTMENTS TAB -->
+    <div id="investments-tab" class="tab-content" style="display:none;">
+        <div class="form-section">
+            <h2>Add Investment</h2>
+            <form id="investment-form">
+                <input type="text" id="inv-name" placeholder="Investment Name" required>
+                <input type="number" id="inv-amount" placeholder="Principal Amount" step="0.01" required>
+                <select id="inv-category" required>
+                    <option value="Stocks">Stocks</option>
+                    <option value="Crypto">Crypto</option>
+                    <option value="Real Estate">Real Estate</option>
+                    <option value="Other">Other</option>
+                </select>
+                <input type="number" id="inv-interest" placeholder="Monthly Interest %" step="0.01" required>
+                <input type="date" id="inv-date" required>
+                <select id="inv-currency">
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="INR">INR</option>
+                </select>
+                <button type="submit">Add Investment</button>
+            </form>
+
+            <h3>Add Monthly Interest</h3>
+            <label for="select-investment">Select Investment:</label>
+            <select id="select-investment">
+                <option value="">-- Select Investment --</option>
+            </select>
+            <label for="interest-date">Select Month for Interest:</label>
+            <input type="month" id="interest-date">
+            <label for="interest-amount">Enter Interest Amount (optional):</label>
+            <input type="number" id="interest-amount" placeholder="Interest Amount" step="0.01">
+            <button id="add-monthly-interest">Add Monthly Interest</button>
+        </div>
+
+        <div class="transactions-section">
+            <h2>Investments</h2>
+            <table id="investment-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Principal</th>
+                        <th>Monthly Interest %</th>
+                        <th>Currency</th>
+                        <th>Start Date</th>
+                        <th>Accumulated Interest</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- CHARTS TAB -->
+    <div id="charts-tab" class="tab-content" style="display:none;">
+        <h2>Monthly Overview</h2>
+        <canvas id="overviewChart" height="200"></canvas>
+    </div>
+
+    <p>Press Ctrl+E to export all data to CSV.</p>
+</div>
 <body>
 
 <h1>Expense Tracker</h1>
@@ -80,4 +201,5 @@ window.auth = getAuth(app);
 
 </body>
 </html>
+
 
