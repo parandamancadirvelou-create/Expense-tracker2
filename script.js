@@ -30,6 +30,12 @@ const transactionsTbody = document.getElementById("transactions");
 const auth = window.auth;
 const db = window.db;
 
+// Exemple correct
+import { RecaptchaVerifier } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', {}, auth);
+
+
 // LOGIN
 loginBtn.onclick = async () => {
   try {
@@ -103,3 +109,4 @@ window.deleteTransaction = async id => {
   await deleteDoc(doc(db, "users", user.uid, "transactions", id));
   loadTransactions(user.uid);
 };
+
