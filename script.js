@@ -108,33 +108,47 @@ const interestDateInput=document.getElementById("interest-date");
 const interestAmountInput=document.getElementById("interest-amount");
 const addMonthlyInterestBtn=document.getElementById("add-monthly-interest");
 
-investmentForm.addEventListener("submit",async e=>{
+// Submit Investment (ajout ou édition)
+investmentForm.addEventListener("submit", async e => {
   e.preventDefault();
-  investments.push({
+
+  const newInvestment = {
     name: invNameInput.value,
     principal: +invAmountInput.value,
     category: invCategoryInput.value,
     interest: +invInterestInput.value,
     date: invDateInput.value,
     currency: invCurrencyInput.value,
-    accumulatedInterest:0
-  });
+    accumulatedInterest: 0
+  };
+
+  // Vérifie si on est en édition
+  const editIndex = investmentForm.dataset.editIndex;
+  if (editIndex !== undefined) {
+    investments[editIndex] = newInvestment;
+    delete investmentForm.dataset.editIndex; // reset
+  } else {
+    investments.push(newInvestment);
+  }
+
   await save();
   investmentForm.reset();
 });
 
-addMonthlyInterestBtn.addEventListener("click",async ()=>{
-  const idx=parseInt(selectInvestment.value);
+// Ajouter intérêt mensuel
+addMonthlyInterestBtn.addEventListener("click", async ()=>{
+  const idx = parseInt(selectInvestment.value);
   if(isNaN(idx)) return alert("Sélectionnez un investissement");
-  const inv=investments[idx];
-  let interestValue=parseFloat(interestAmountInput.value);
-  if(isNaN(interestValue)||interestValue<=0) interestValue=inv.principal*inv.interest/100;
-  inv.accumulatedInterest=(inv.accumulatedInterest||0)+interestValue;
+  const inv = investments[idx];
+  let interestValue = parseFloat(interestAmountInput.value);
+  if(isNaN(interestValue) || interestValue <=0) interestValue = inv.principal * inv.interest / 100;
+  inv.accumulatedInterest = (inv.accumulatedInterest || 0) + interestValue;
   await save();
   selectInvestment.value=""; interestDateInput.value=""; interestAmountInput.value="";
   alert(`Intérêt ajouté : ${interestValue.toFixed(2)} ${inv.currency}`);
 });
 
+// Mettre à jour le select des investissements
 function updateInvestmentSelect(){
   selectInvestment.innerHTML=`<option value="">-- Select Investment --</option>`;
   investments.forEach((inv,idx)=>{
@@ -144,6 +158,7 @@ function updateInvestmentSelect(){
   });
 }
 
+// Affichage Investments
 function renderInvestments(){
   const tbody=document.querySelector("#investment-table tbody");
   tbody.innerHTML="";
@@ -164,13 +179,22 @@ function renderInvestments(){
   });
 }
 
-window.deleteInvestment=async idx=>{ investments.splice(idx,1); await save(); };
+window.deleteInvestment=async idx=>{
+  investments.splice(idx,1);
+  await save();
+};
+
 window.editInvestment=idx=>{
-  const i=investments[idx];
-  invNameInput.value=i.name; invAmountInput.value=i.principal;
-  invCategoryInput.value=i.category; invInterestInput.value=i.interest;
-  invDateInput.value=i.date; invCurrencyInput.value=i.currency;
-  investments.splice(idx,1); renderInvestments(); updateInvestmentSelect();
+  const i = investments[idx];
+  invNameInput.value = i.name;
+  invAmountInput.value = i.principal;
+  invCategoryInput.value = i.category;
+  invInterestInput.value = i.interest;
+  invDateInput.value = i.date;
+  invCurrencyInput.value = i.currency;
+
+  // Stocke l’index dans le formulaire pour remplacer à la soumission
+  investmentForm.dataset.editIndex = idx;
 };
 
 // CSV export
@@ -182,12 +206,17 @@ document.getElementById("export-csv-btn").onclick=()=>{
   a.download="export.csv"; a.click();
 };
 
-// Save
+// Sauvegarde
 async function save(){
   renderTransactions(); renderInvestments(); updateInvestmentSelect();
-  const user=auth.currentUser;
-  if(user){ const userDocRef=doc(db,"users",user.uid); await setDoc(userDocRef,{transactions,investments}); }
-  else { localStorage.setItem("transactions",JSON.stringify(transactions)); localStorage.setItem("investments",JSON.stringify(investments)); }
+  const user = auth.currentUser;
+  if(user){
+    const userDocRef = doc(db,"users",user.uid);
+    await setDoc(userDocRef,{transactions,investments});
+  } else {
+    localStorage.setItem("transactions",JSON.stringify(transactions));
+    localStorage.setItem("investments",JSON.stringify(investments));
+  }
 }
 
 // Init
