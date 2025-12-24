@@ -1,112 +1,71 @@
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-import {
-  collection,
-  addDoc,
-  getDocs,
-  deleteDoc,
-  doc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-// Références aux éléments HTML
+// Sélecteurs
 const authBox = document.getElementById("authBox");
 const appBox = document.getElementById("appBox");
+
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
 
 const loginBtn = document.getElementById("login");
 const registerBtn = document.getElementById("register");
 const logoutBtn = document.getElementById("logout");
 
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-
-const transactionForm = document.getElementById("transaction-form");
-const transactionsTbody = document.getElementById("transactions");
-
-const auth = window.auth;
-const db = window.db;
-
-// Exemple correct
-import { RecaptchaVerifier } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', {}, auth);
-
-
 // LOGIN
-loginBtn.onclick = async () => {
+loginBtn.addEventListener("click", async () => {
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  if (!email || !password) return alert("Veuillez remplir email et mot de passe");
+
   try {
-    await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
-  } catch(e) { alert(e.message); }
-};
-
-// REGISTER
-registerBtn.onclick = async () => {
-  try {
-    await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
-  } catch(e) { alert(e.message); }
-};
-
-// LOGOUT
-logoutBtn.onclick = async () => {
-  await signOut(auth);
-};
-
-// SURVEILLER L'ÉTAT AUTH
-onAuthStateChanged(auth, user => {
-  if(user){
+    await signInWithEmailAndPassword(auth, email, password);
+    alert("Connexion réussie !");
     authBox.style.display = "none";
     appBox.style.display = "block";
-    loadTransactions(user.uid);
+  } catch (err) {
+    console.error(err);
+    alert("Erreur de connexion : " + err.message);
+  }
+});
+
+// REGISTER
+registerBtn.addEventListener("click", async () => {
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  if (!email || !password) return alert("Veuillez remplir email et mot de passe");
+
+  try {
+    await createUserWithEmailAndPassword(auth, email, password);
+    alert("Compte créé avec succès !");
+    authBox.style.display = "none";
+    appBox.style.display = "block";
+  } catch (err) {
+    console.error(err);
+    alert("Erreur d'inscription : " + err.message);
+  }
+});
+
+// LOGOUT
+logoutBtn.addEventListener("click", async () => {
+  try {
+    await signOut(auth);
+    authBox.style.display = "block";
+    appBox.style.display = "none";
+  } catch (err) {
+    console.error(err);
+    alert("Erreur de déconnexion : " + err.message);
+  }
+});
+
+// Garder la session active
+auth.onAuthStateChanged(user => {
+  if (user) {
+    authBox.style.display = "none";
+    appBox.style.display = "block";
   } else {
     authBox.style.display = "block";
     appBox.style.display = "none";
   }
 });
-
-// AJOUTER TRANSACTION
-transactionForm.addEventListener("submit", async e => {
-  e.preventDefault();
-  const user = auth.currentUser;
-  if(!user) return;
-
-  await addDoc(collection(db, "users", user.uid, "transactions"), {
-    name: document.getElementById("name").value,
-    amount: document.getElementById("amount").value,
-    type: document.getElementById("type").value,
-    date: document.getElementById("date").value
-  });
-
-  e.target.reset();
-  loadTransactions(user.uid);
-});
-
-// CHARGER LES TRANSACTIONS
-async function loadTransactions(uid){
-  transactionsTbody.innerHTML = "";
-  const snapshot = await getDocs(collection(db, "users", uid, "transactions"));
-  snapshot.forEach(docSnap => {
-    const t = docSnap.data();
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${t.name}</td>
-      <td>${t.amount}</td>
-      <td>${t.type}</td>
-      <td>${t.date}</td>
-      <td><button onclick="deleteTransaction('${docSnap.id}')">❌</button></td>
-    `;
-    transactionsTbody.appendChild(tr);
-  });
-}
-
-// SUPPRIMER TRANSACTION
-window.deleteTransaction = async id => {
-  const user = auth.currentUser;
-  if(!user) return;
-  await deleteDoc(doc(db, "users", user.uid, "transactions", id));
-  loadTransactions(user.uid);
-};
-
