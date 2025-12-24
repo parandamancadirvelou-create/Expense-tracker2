@@ -156,33 +156,73 @@ const invInterestInput = document.getElementById("inv-interest");
 const invDateInput = document.getElementById("inv-date");
 const invCurrencyInput = document.getElementById("inv-currency");
 
-// Submit form Investment
-investmentForm.addEventListener("submit", async e => {
-  e.preventDefault(); // empêche le rechargement
+const selectInvestment = document.getElementById("select-investment");
+const interestDateInput = document.getElementById("interest-date");
+const interestAmountInput = document.getElementById("interest-amount");
+const addMonthlyInterestBtn = document.getElementById("add-monthly-interest");
 
-  // Vérification basique
+// Ajouter un investissement
+investmentForm.addEventListener("submit", async e => {
+  e.preventDefault();
+
   if (!invNameInput.value || !invAmountInput.value) {
     alert("Veuillez saisir un nom et un capital.");
     return;
   }
 
-  // Ajouter à l'array
   investments.push({
     name: invNameInput.value,
     principal: +invAmountInput.value,
     interest: +invInterestInput.value,
     date: invDateInput.value,
-    currency: invCurrencyInput.value
+    currency: invCurrencyInput.value,
+    accumulatedInterest: 0
   });
 
-  // Sauvegarde dans Firestore et mise à jour tableau
-  await save(); // <-- ici on remplace saveInvestments() par save()
+  await save();
 
-  // Réinitialisation formulaire
   investmentForm.reset();
+  updateInvestmentSelect();
 });
 
-// Fonction pour afficher la table des investissements
+// Ajouter un intérêt mensuel
+addMonthlyInterestBtn.addEventListener("click", async () => {
+  const idx = parseInt(selectInvestment.value);
+  if (isNaN(idx)) {
+    alert("Veuillez sélectionner un investissement.");
+    return;
+  }
+
+  const inv = investments[idx];
+  let interestValue = parseFloat(interestAmountInput.value);
+
+  if (isNaN(interestValue) || interestValue <= 0) {
+    interestValue = inv.principal * inv.interest / 100;
+  }
+
+  inv.accumulatedInterest = (inv.accumulatedInterest || 0) + interestValue;
+
+  await save();
+
+  selectInvestment.value = "";
+  interestDateInput.value = "";
+  interestAmountInput.value = "";
+  alert(`Intérêt ajouté : ${interestValue.toFixed(2)} ${inv.currency}`);
+});
+
+// Mettre à jour le select des investissements
+function updateInvestmentSelect() {
+  selectInvestment.innerHTML = `<option value="">-- Select Investment --</option>`;
+  investments.forEach((inv, idx) => {
+    const option = document.createElement("option");
+    option.value = idx;
+    option.textContent = inv.name;
+    selectInvestment.appendChild(option);
+  });
+}
+
+/* ================= RENDER INVESTMENTS ================= */
+
 function renderInvestments() {
   const tbody = document.querySelector("#investment-table tbody");
   tbody.innerHTML = "";
@@ -195,7 +235,7 @@ function renderInvestments() {
         <td>${i.interest}%</td>
         <td>${i.currency}</td>
         <td>${i.date}</td>
-        <td>${(i.principal * i.interest / 100).toFixed(2)}</td>
+        <td>${(i.accumulatedInterest || 0).toFixed(2)}</td>
         <td>
           <button onclick="editInvestment(${idx})">Éditer</button>
           <button onclick="deleteInvestment(${idx})">X</button>
@@ -207,7 +247,8 @@ function renderInvestments() {
 // Supprimer un investissement
 window.deleteInvestment = async idx => {
   investments.splice(idx, 1);
-  await saveInvestments();
+  await save();
+  updateInvestmentSelect();
 };
 
 // Éditer un investissement
@@ -219,8 +260,9 @@ window.editInvestment = idx => {
   invDateInput.value = i.date;
   invCurrencyInput.value = i.currency;
 
-  investments.splice(idx, 1); // on supprime temporairement pour remplacer après submit
+  investments.splice(idx, 1);
   renderInvestments();
+  updateInvestmentSelect();
 };
 
 /* ================= CSV ================= */
@@ -243,13 +285,13 @@ exportCsvBtn.onclick = () => {
 async function save() {
   renderTransactions();
   renderInvestments();
+  updateInvestmentSelect();
 
   const user = auth.currentUser;
   if (user) {
     const userDocRef = doc(db, "users", user.uid);
     await setDoc(userDocRef, { transactions, investments });
   } else {
-    // fallback localStorage si pas connecté
     localStorage.setItem("transactions", JSON.stringify(transactions));
     localStorage.setItem("investments", JSON.stringify(investments));
   }
@@ -258,5 +300,4 @@ async function save() {
 /* ================= INIT ================= */
 
 showTab("transactions");
-
-
+updateInvestmentSelect();
