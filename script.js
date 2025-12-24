@@ -5,17 +5,11 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-import {
-  doc,
-  setDoc,
-  getDoc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* ================= INIT ================= */
 const auth = window.auth;
 const db = window.db;
 
-/* ================= AUTH ================= */
 const authBox = document.getElementById("authBox");
 const appBox = document.getElementById("appBox");
 
@@ -29,84 +23,65 @@ const logoutBtn = document.getElementById("logout");
 let transactions = [];
 let investments = [];
 
-// Login
+// Auth
 loginBtn.addEventListener("click", async () => {
-  try {
-    const userCred = await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
-    console.log("Connecté :", userCred.user.email);
-  } catch (e) { alert(e.message); }
+  try { await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value); }
+  catch(e){ alert(e.message); }
 });
-
-// Register
 registerBtn.addEventListener("click", async () => {
-  try {
-    const userCred = await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
-    console.log("Compte créé :", userCred.user.email);
-  } catch (e) { alert(e.message); }
+  try { await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value); }
+  catch(e){ alert(e.message); }
 });
-
-// Logout
-logoutBtn.addEventListener("click", () => signOut(auth));
+logoutBtn.addEventListener("click", ()=>signOut(auth));
 
 // AuthState
 onAuthStateChanged(auth, async user => {
-  if (user) {
-    authBox.style.display = "none";
-    appBox.style.display = "block";
-
-    const userDocRef = doc(db, "users", user.uid);
-    const userSnap = await getDoc(userDocRef);
-
-    if (userSnap.exists()) {
-      const data = userSnap.data();
-      transactions = data.transactions || [];
-      investments = data.investments || [];
+  if(user){
+    authBox.style.display="none"; appBox.style.display="block";
+    const userDocRef=doc(db,"users",user.uid);
+    const userSnap=await getDoc(userDocRef);
+    if(userSnap.exists()){
+      const data=userSnap.data();
+      transactions=data.transactions||[];
+      investments=data.investments||[];
     } else {
-      await setDoc(userDocRef, { transactions: [], investments: [] });
-      transactions = [];
-      investments = [];
+      await setDoc(userDocRef,{transactions:[],investments:[]});
+      transactions=[]; investments=[];
     }
-
     save();
-  } else {
-    authBox.style.display = "block";
-    appBox.style.display = "none";
-  }
+  } else { authBox.style.display="block"; appBox.style.display="none"; }
 });
 
-/* ================= TABS ================= */
-function showTab(tab) {
-  document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
-  document.getElementById(`${tab}-tab`).style.display = "block";
-  document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
+// Tabs
+function showTab(tab){
+  document.querySelectorAll(".tab-content").forEach(t=>t.style.display="none");
+  document.getElementById(`${tab}-tab`).style.display="block";
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
   document.getElementById(`tab-${tab}`).classList.add("active");
 }
+document.getElementById("tab-transactions").onclick=()=>showTab("transactions");
+document.getElementById("tab-investments").onclick=()=>showTab("investments");
+document.getElementById("tab-charts").onclick=()=>showTab("charts");
 
-document.getElementById("tab-transactions").onclick = () => showTab("transactions");
-document.getElementById("tab-investments").onclick = () => showTab("investments");
-document.getElementById("tab-charts").onclick = () => showTab("charts");
-
-/* ================= TRANSACTIONS ================= */
-const transactionForm = document.getElementById("transaction-form");
-transactionForm.addEventListener("submit", e => {
+// Transactions
+const transactionForm=document.getElementById("transaction-form");
+transactionForm.addEventListener("submit",e=>{
   e.preventDefault();
-  const name = document.getElementById("name").value;
-  const amount = +document.getElementById("amount").value;
-  const type = document.getElementById("type").value;
-  const category = document.getElementById("category").value;
-  const date = document.getElementById("date").value;
-  const currency = document.getElementById("currency").value;
-
-  transactions.push({ name, amount, type, category, date, currency });
-  save();
-  transactionForm.reset();
+  transactions.push({
+    name: document.getElementById("name").value,
+    amount: +document.getElementById("amount").value,
+    type: document.getElementById("type").value,
+    category: document.getElementById("category").value,
+    date: document.getElementById("date").value,
+    currency: document.getElementById("currency").value
+  });
+  save(); transactionForm.reset();
 });
-
-function renderTransactions() {
-  const tbody = document.querySelector("#transaction-table tbody");
-  tbody.innerHTML = "";
-  transactions.forEach((t, i) => {
-    tbody.innerHTML += `<tr>
+function renderTransactions(){
+  const tbody=document.querySelector("#transaction-table tbody");
+  tbody.innerHTML="";
+  transactions.forEach((t,i)=>{
+    tbody.innerHTML+=`<tr>
       <td>${t.name}</td>
       <td>${t.amount}</td>
       <td>${t.type}</td>
@@ -117,26 +92,24 @@ function renderTransactions() {
     </tr>`;
   });
 }
-window.delT = i => { transactions.splice(i,1); save(); };
+window.delT=i=>{ transactions.splice(i,1); save(); };
 
-/* ================= INVESTMENTS ================= */
-const investmentForm = document.getElementById("investment-form");
-const invNameInput = document.getElementById("inv-name");
-const invAmountInput = document.getElementById("inv-amount");
-const invInterestInput = document.getElementById("inv-interest");
-const invDateInput = document.getElementById("inv-date");
-const invCurrencyInput = document.getElementById("inv-currency");
-const invCategoryInput = document.getElementById("inv-category");
+// Investments
+const investmentForm=document.getElementById("investment-form");
+const invNameInput=document.getElementById("inv-name");
+const invAmountInput=document.getElementById("inv-amount");
+const invInterestInput=document.getElementById("inv-interest");
+const invDateInput=document.getElementById("inv-date");
+const invCurrencyInput=document.getElementById("inv-currency");
+const invCategoryInput=document.getElementById("inv-category");
 
-const selectInvestment = document.getElementById("select-investment");
-const interestDateInput = document.getElementById("interest-date");
-const interestAmountInput = document.getElementById("interest-amount");
-const addMonthlyInterestBtn = document.getElementById("add-monthly-interest");
+const selectInvestment=document.getElementById("select-investment");
+const interestDateInput=document.getElementById("interest-date");
+const interestAmountInput=document.getElementById("interest-amount");
+const addMonthlyInterestBtn=document.getElementById("add-monthly-interest");
 
-investmentForm.addEventListener("submit", async e => {
+investmentForm.addEventListener("submit",async e=>{
   e.preventDefault();
-  if(!invNameInput.value || !invAmountInput.value) return alert("Nom et capital requis");
-
   investments.push({
     name: invNameInput.value,
     principal: +invAmountInput.value,
@@ -144,31 +117,29 @@ investmentForm.addEventListener("submit", async e => {
     interest: +invInterestInput.value,
     date: invDateInput.value,
     currency: invCurrencyInput.value,
-    accumulatedInterest: 0
+    accumulatedInterest:0
   });
-
   await save();
   investmentForm.reset();
 });
 
-addMonthlyInterestBtn.addEventListener("click", async () => {
-  const idx = parseInt(selectInvestment.value);
+addMonthlyInterestBtn.addEventListener("click",async ()=>{
+  const idx=parseInt(selectInvestment.value);
   if(isNaN(idx)) return alert("Sélectionnez un investissement");
-  const inv = investments[idx];
-  let interestValue = parseFloat(interestAmountInput.value);
-  if(isNaN(interestValue) || interestValue<=0) interestValue = inv.principal*inv.interest/100;
-  inv.accumulatedInterest = (inv.accumulatedInterest||0)+interestValue;
+  const inv=investments[idx];
+  let interestValue=parseFloat(interestAmountInput.value);
+  if(isNaN(interestValue)||interestValue<=0) interestValue=inv.principal*inv.interest/100;
+  inv.accumulatedInterest=(inv.accumulatedInterest||0)+interestValue;
   await save();
   selectInvestment.value=""; interestDateInput.value=""; interestAmountInput.value="";
   alert(`Intérêt ajouté : ${interestValue.toFixed(2)} ${inv.currency}`);
 });
 
-function updateInvestmentSelect() {
+function updateInvestmentSelect(){
   selectInvestment.innerHTML=`<option value="">-- Select Investment --</option>`;
-  investments.forEach((inv, idx)=>{
+  investments.forEach((inv,idx)=>{
     const option=document.createElement("option");
-    option.value=idx;
-    option.textContent=inv.name;
+    option.value=idx; option.textContent=inv.name;
     selectInvestment.appendChild(option);
   });
 }
@@ -202,7 +173,7 @@ window.editInvestment=idx=>{
   investments.splice(idx,1); renderInvestments(); updateInvestmentSelect();
 };
 
-/* ================= CSV ================= */
+// CSV export
 document.getElementById("export-csv-btn").onclick=()=>{
   let csv="Name,Amount,Type,Category,Date,Currency\n";
   transactions.forEach(t=>csv+=`${t.name},${t.amount},${t.type},${t.category},${t.date},${t.currency}\n`);
@@ -211,19 +182,14 @@ document.getElementById("export-csv-btn").onclick=()=>{
   a.download="export.csv"; a.click();
 };
 
-/* ================= SAVE ================= */
+// Save
 async function save(){
   renderTransactions(); renderInvestments(); updateInvestmentSelect();
   const user=auth.currentUser;
-  if(user){
-    const userDocRef=doc(db,"users",user.uid);
-    await setDoc(userDocRef,{transactions,investments});
-  } else {
-    localStorage.setItem("transactions",JSON.stringify(transactions));
-    localStorage.setItem("investments",JSON.stringify(investments));
-  }
+  if(user){ const userDocRef=doc(db,"users",user.uid); await setDoc(userDocRef,{transactions,investments}); }
+  else { localStorage.setItem("transactions",JSON.stringify(transactions)); localStorage.setItem("investments",JSON.stringify(investments)); }
 }
 
-/* ================= INIT ================= */
+// Init
 showTab("transactions");
 updateInvestmentSelect();
