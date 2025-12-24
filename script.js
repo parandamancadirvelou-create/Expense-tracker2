@@ -71,6 +71,7 @@ const transactionForm = document.getElementById("transaction-form");
 
 transactionForm.addEventListener("submit", e => {
   e.preventDefault();
+
   const newTransaction = {
     name: document.getElementById("name").value,
     amount: +document.getElementById("amount").value,
@@ -79,6 +80,7 @@ transactionForm.addEventListener("submit", e => {
     date: document.getElementById("date").value,
     currency: document.getElementById("currency").value
   };
+
   const editIndex = transactionForm.dataset.editIndex;
   if(editIndex !== undefined){
     transactions[editIndex] = newTransaction;
@@ -86,6 +88,7 @@ transactionForm.addEventListener("submit", e => {
   } else {
     transactions.push(newTransaction);
   }
+
   save();
   transactionForm.reset();
 });
@@ -93,6 +96,7 @@ transactionForm.addEventListener("submit", e => {
 function renderTransactions() {
   const tbody = document.querySelector("#transaction-table tbody");
   tbody.innerHTML = "";
+
   transactions.forEach((t, i) => {
     tbody.innerHTML += `<tr>
       <td>${t.name}</td>
@@ -138,6 +142,7 @@ const addMonthlyInterestBtn = document.getElementById("add-monthly-interest");
 
 investmentForm.addEventListener("submit", async e => {
   e.preventDefault();
+
   const newInvestment = {
     name: invNameInput.value,
     principal: +invAmountInput.value,
@@ -145,9 +150,9 @@ investmentForm.addEventListener("submit", async e => {
     interest: +invInterestInput.value,
     date: invDateInput.value,
     currency: invCurrencyInput.value,
-    accumulatedInterest: 0,
-    monthlyInterests: []
+    accumulatedInterest: 0
   };
+
   const editIndex = investmentForm.dataset.editIndex;
   if(editIndex !== undefined){
     investments[editIndex] = newInvestment;
@@ -155,6 +160,7 @@ investmentForm.addEventListener("submit", async e => {
   } else {
     investments.push(newInvestment);
   }
+
   await save();
   investmentForm.reset();
 });
@@ -163,21 +169,12 @@ addMonthlyInterestBtn.addEventListener("click", async ()=>{
   const idx = parseInt(selectInvestment.value);
   if(isNaN(idx)) return alert("Sélectionnez un investissement");
   const inv = investments[idx];
-
-  const month = interestDateInput.value;
-  if(!month) return alert("Sélectionnez un mois");
-
   let interestValue = parseFloat(interestAmountInput.value);
-  if(isNaN(interestValue) || interestValue <= 0) interestValue = inv.principal * inv.interest / 100;
-
-  inv.monthlyInterests.push({ month, amount: interestValue });
-  inv.accumulatedInterest = inv.monthlyInterests.reduce((sum,m)=>sum+m.amount,0);
-
+  if(isNaN(interestValue) || interestValue <=0) interestValue = inv.principal * inv.interest / 100;
+  inv.accumulatedInterest = (inv.accumulatedInterest || 0) + interestValue;
   await save();
-  selectInvestment.value = "";
-  interestDateInput.value = "";
-  interestAmountInput.value = "";
-  alert(`Intérêt ajouté : ${interestValue.toFixed(2)} ${inv.currency} pour ${month}`);
+  selectInvestment.value = ""; interestDateInput.value = ""; interestAmountInput.value = "";
+  alert(`Intérêt ajouté : ${interestValue.toFixed(2)} ${inv.currency}`);
 });
 
 function updateInvestmentSelect(){
@@ -193,7 +190,6 @@ function renderInvestments(){
   const tbody = document.querySelector("#investment-table tbody");
   tbody.innerHTML = "";
   investments.forEach((i,idx)=>{
-    const interestsDetail = i.monthlyInterests.map(m=>`${m.month}: ${m.amount.toFixed(2)}`).join("<br>");
     tbody.innerHTML += `<tr>
       <td>${i.name}</td>
       <td>${i.principal}</td>
@@ -201,7 +197,7 @@ function renderInvestments(){
       <td>${i.interest}%</td>
       <td>${i.currency}</td>
       <td>${i.date}</td>
-      <td>${(i.accumulatedInterest||0).toFixed(2)}<br>${interestsDetail}</td>
+      <td>${(i.accumulatedInterest||0).toFixed(2)}</td>
       <td>
         <button onclick="editInvestment(${idx})">Éditer</button>
         <button onclick="deleteInvestment(${idx})">X</button>
@@ -236,67 +232,9 @@ document.getElementById("export-csv-btn").onclick = () => {
   a.click();
 };
 
-// ================= Charts =================
-let transactionsChart, investmentsChart;
-
-function renderCharts(){
-  // --- Transactions par mois ---
-  const transactionByMonth = {};
-  transactions.forEach(t=>{
-    const month = t.date.slice(0,7);
-    if(!transactionByMonth[month]) transactionByMonth[month]={income:0,expense:0};
-    if(t.type==="income") transactionByMonth[month].income += t.amount;
-    if(t.type==="expense") transactionByMonth[month].expense += t.amount;
-  });
-  const months = Object.keys(transactionByMonth).sort();
-  const incomeData = months.map(m=>transactionByMonth[m].income);
-  const expenseData = months.map(m=>transactionByMonth[m].expense);
-
-  const ctxT = document.getElementById("transactionsChart").getContext("2d");
-  if(transactionsChart) transactionsChart.destroy();
-  transactionsChart = new Chart(ctxT,{
-    type:"bar",
-    data:{labels:months, datasets:[
-      {label:"Income", data:incomeData, backgroundColor:"green"},
-      {label:"Expense", data:expenseData, backgroundColor:"red"}
-    ]},
-    options:{ responsive:true, plugins:{ legend:{ position:"top" } } }
-  });
-
-  // --- Intérêts mensuels ---
-  const interestByMonth = {};
-  investments.forEach(inv=>{
-    inv.monthlyInterests.forEach(m=>{
-      if(!interestByMonth[m.month]) interestByMonth[m.month]=0;
-      interestByMonth[m.month] += m.amount;
-    });
-  });
-  const interestMonths = Object.keys(interestByMonth).sort();
-  const interestData = interestMonths.map(m=>interestByMonth[m]);
-
-  const ctxI = document.getElementById("investmentsChart").getContext("2d");
-  if(investmentsChart) investmentsChart.destroy();
-  investmentsChart = new Chart(ctxI,{
-    type:"line",
-    data:{labels:interestMonths, datasets:[{
-      label:"Intérêts mensuels accumulés",
-      data:interestData,
-      backgroundColor:"rgba(255,165,0,0.3)",
-      borderColor:"orange",
-      fill:true,
-      tension:0.3
-    }]},
-    options:{ responsive:true, plugins:{ legend:{ position:"top" } } }
-  });
-}
-
 // ================= Save =================
 async function save(){
-  renderTransactions(); 
-  renderInvestments(); 
-  updateInvestmentSelect();
-  renderCharts();
-
+  renderTransactions(); renderInvestments(); updateInvestmentSelect();
   const user = auth.currentUser;
   if(user){
     const userDocRef = doc(db,"users",user.uid);
