@@ -10,6 +10,7 @@ import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/f
 const auth = window.auth;
 const db = window.db;
 
+// Auth
 const authBox = document.getElementById("authBox");
 const appBox = document.getElementById("appBox");
 
@@ -23,7 +24,7 @@ const logoutBtn = document.getElementById("logout");
 let transactions = [];
 let investments = [];
 
-// Auth
+// Connexion / Création / Déconnexion
 loginBtn.addEventListener("click", async () => {
   try { await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value); }
   catch(e){ alert(e.message); }
@@ -32,83 +33,112 @@ registerBtn.addEventListener("click", async () => {
   try { await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value); }
   catch(e){ alert(e.message); }
 });
-logoutBtn.addEventListener("click", ()=>signOut(auth));
+logoutBtn.addEventListener("click", () => signOut(auth));
 
 // AuthState
 onAuthStateChanged(auth, async user => {
   if(user){
     authBox.style.display="none"; appBox.style.display="block";
-    const userDocRef=doc(db,"users",user.uid);
-    const userSnap=await getDoc(userDocRef);
+    const userDocRef = doc(db,"users",user.uid);
+    const userSnap = await getDoc(userDocRef);
     if(userSnap.exists()){
-      const data=userSnap.data();
-      transactions=data.transactions||[];
-      investments=data.investments||[];
+      const data = userSnap.data();
+      transactions = data.transactions || [];
+      investments = data.investments || [];
     } else {
       await setDoc(userDocRef,{transactions:[],investments:[]});
-      transactions=[]; investments=[];
+      transactions = []; investments = [];
     }
     save();
-  } else { authBox.style.display="block"; appBox.style.display="none"; }
+  } else {
+    authBox.style.display="block"; appBox.style.display="none";
+  }
 });
 
 // Tabs
 function showTab(tab){
-  document.querySelectorAll(".tab-content").forEach(t=>t.style.display="none");
+  document.querySelectorAll(".tab-content").forEach(t => t.style.display="none");
   document.getElementById(`${tab}-tab`).style.display="block";
-  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
   document.getElementById(`tab-${tab}`).classList.add("active");
 }
-document.getElementById("tab-transactions").onclick=()=>showTab("transactions");
-document.getElementById("tab-investments").onclick=()=>showTab("investments");
-document.getElementById("tab-charts").onclick=()=>showTab("charts");
+document.getElementById("tab-transactions").onclick = () => showTab("transactions");
+document.getElementById("tab-investments").onclick = () => showTab("investments");
+document.getElementById("tab-charts").onclick = () => showTab("charts");
 
-// Transactions
-const transactionForm=document.getElementById("transaction-form");
-transactionForm.addEventListener("submit",e=>{
+// ================= TRANSACTIONS =================
+const transactionForm = document.getElementById("transaction-form");
+
+transactionForm.addEventListener("submit", e => {
   e.preventDefault();
-  transactions.push({
+
+  const newTransaction = {
     name: document.getElementById("name").value,
     amount: +document.getElementById("amount").value,
     type: document.getElementById("type").value,
     category: document.getElementById("category").value,
     date: document.getElementById("date").value,
     currency: document.getElementById("currency").value
-  });
-  save(); transactionForm.reset();
+  };
+
+  const editIndex = transactionForm.dataset.editIndex;
+  if(editIndex !== undefined){
+    transactions[editIndex] = newTransaction;
+    delete transactionForm.dataset.editIndex;
+  } else {
+    transactions.push(newTransaction);
+  }
+
+  save();
+  transactionForm.reset();
 });
+
 function renderTransactions(){
-  const tbody=document.querySelector("#transaction-table tbody");
-  tbody.innerHTML="";
+  const tbody = document.querySelector("#transaction-table tbody");
+  tbody.innerHTML = "";
   transactions.forEach((t,i)=>{
-    tbody.innerHTML+=`<tr>
+    tbody.innerHTML += `<tr>
       <td>${t.name}</td>
       <td>${t.amount}</td>
       <td>${t.type}</td>
       <td>${t.category}</td>
       <td>${t.date}</td>
       <td>${t.currency}</td>
-      <td><button onclick="delT(${i})">X</button></td>
+      <td>
+        <button onclick="editTransaction(${i})">Éditer</button>
+        <button onclick="delT(${i})">X</button>
+      </td>
     </tr>`;
   });
 }
-window.delT=i=>{ transactions.splice(i,1); save(); };
 
-// Investments
-const investmentForm=document.getElementById("investment-form");
-const invNameInput=document.getElementById("inv-name");
-const invAmountInput=document.getElementById("inv-amount");
-const invInterestInput=document.getElementById("inv-interest");
-const invDateInput=document.getElementById("inv-date");
-const invCurrencyInput=document.getElementById("inv-currency");
-const invCategoryInput=document.getElementById("inv-category");
+window.delT = idx => { transactions.splice(idx,1); save(); };
 
-const selectInvestment=document.getElementById("select-investment");
-const interestDateInput=document.getElementById("interest-date");
-const interestAmountInput=document.getElementById("interest-amount");
-const addMonthlyInterestBtn=document.getElementById("add-monthly-interest");
+window.editTransaction = idx => {
+  const t = transactions[idx];
+  document.getElementById("name").value = t.name;
+  document.getElementById("amount").value = t.amount;
+  document.getElementById("type").value = t.type;
+  document.getElementById("category").value = t.category;
+  document.getElementById("date").value = t.date;
+  document.getElementById("currency").value = t.currency;
+  transactionForm.dataset.editIndex = idx;
+};
 
-// Submit Investment (ajout ou édition)
+// ================= INVESTMENTS =================
+const investmentForm = document.getElementById("investment-form");
+const invNameInput = document.getElementById("inv-name");
+const invAmountInput = document.getElementById("inv-amount");
+const invInterestInput = document.getElementById("inv-interest");
+const invDateInput = document.getElementById("inv-date");
+const invCurrencyInput = document.getElementById("inv-currency");
+const invCategoryInput = document.getElementById("inv-category");
+
+const selectInvestment = document.getElementById("select-investment");
+const interestDateInput = document.getElementById("interest-date");
+const interestAmountInput = document.getElementById("interest-amount");
+const addMonthlyInterestBtn = document.getElementById("add-monthly-interest");
+
 investmentForm.addEventListener("submit", async e => {
   e.preventDefault();
 
@@ -122,11 +152,10 @@ investmentForm.addEventListener("submit", async e => {
     accumulatedInterest: 0
   };
 
-  // Vérifie si on est en édition
   const editIndex = investmentForm.dataset.editIndex;
-  if (editIndex !== undefined) {
+  if(editIndex !== undefined){
     investments[editIndex] = newInvestment;
-    delete investmentForm.dataset.editIndex; // reset
+    delete investmentForm.dataset.editIndex;
   } else {
     investments.push(newInvestment);
   }
@@ -135,7 +164,6 @@ investmentForm.addEventListener("submit", async e => {
   investmentForm.reset();
 });
 
-// Ajouter intérêt mensuel
 addMonthlyInterestBtn.addEventListener("click", async ()=>{
   const idx = parseInt(selectInvestment.value);
   if(isNaN(idx)) return alert("Sélectionnez un investissement");
@@ -144,26 +172,24 @@ addMonthlyInterestBtn.addEventListener("click", async ()=>{
   if(isNaN(interestValue) || interestValue <=0) interestValue = inv.principal * inv.interest / 100;
   inv.accumulatedInterest = (inv.accumulatedInterest || 0) + interestValue;
   await save();
-  selectInvestment.value=""; interestDateInput.value=""; interestAmountInput.value="";
+  selectInvestment.value = ""; interestDateInput.value = ""; interestAmountInput.value = "";
   alert(`Intérêt ajouté : ${interestValue.toFixed(2)} ${inv.currency}`);
 });
 
-// Mettre à jour le select des investissements
 function updateInvestmentSelect(){
-  selectInvestment.innerHTML=`<option value="">-- Select Investment --</option>`;
+  selectInvestment.innerHTML = `<option value="">-- Select Investment --</option>`;
   investments.forEach((inv,idx)=>{
-    const option=document.createElement("option");
-    option.value=idx; option.textContent=inv.name;
+    const option = document.createElement("option");
+    option.value = idx; option.textContent = inv.name;
     selectInvestment.appendChild(option);
   });
 }
 
-// Affichage Investments
 function renderInvestments(){
-  const tbody=document.querySelector("#investment-table tbody");
-  tbody.innerHTML="";
+  const tbody = document.querySelector("#investment-table tbody");
+  tbody.innerHTML = "";
   investments.forEach((i,idx)=>{
-    tbody.innerHTML+=`<tr>
+    tbody.innerHTML += `<tr>
       <td>${i.name}</td>
       <td>${i.principal}</td>
       <td>${i.category}</td>
@@ -179,12 +205,12 @@ function renderInvestments(){
   });
 }
 
-window.deleteInvestment=async idx=>{
+window.deleteInvestment = async idx => {
   investments.splice(idx,1);
   await save();
 };
 
-window.editInvestment=idx=>{
+window.editInvestment = idx => {
   const i = investments[idx];
   invNameInput.value = i.name;
   invAmountInput.value = i.principal;
@@ -192,21 +218,20 @@ window.editInvestment=idx=>{
   invInterestInput.value = i.interest;
   invDateInput.value = i.date;
   invCurrencyInput.value = i.currency;
-
-  // Stocke l’index dans le formulaire pour remplacer à la soumission
   investmentForm.dataset.editIndex = idx;
 };
 
-// CSV export
-document.getElementById("export-csv-btn").onclick=()=>{
-  let csv="Name,Amount,Type,Category,Date,Currency\n";
-  transactions.forEach(t=>csv+=`${t.name},${t.amount},${t.type},${t.category},${t.date},${t.currency}\n`);
-  const a=document.createElement("a");
-  a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
-  a.download="export.csv"; a.click();
+// ================= CSV export =================
+document.getElementById("export-csv-btn").onclick = () => {
+  let csv = "Name,Amount,Type,Category,Date,Currency\n";
+  transactions.forEach(t => csv += `${t.name},${t.amount},${t.type},${t.category},${t.date},${t.currency}\n`);
+  const a = document.createElement("a");
+  a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+  a.download = "export.csv";
+  a.click();
 };
 
-// Sauvegarde
+// ================= Save =================
 async function save(){
   renderTransactions(); renderInvestments(); updateInvestmentSelect();
   const user = auth.currentUser;
