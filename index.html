@@ -66,15 +66,28 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
 </div>
 
 <!-- INVESTMENTS -->
-<div id="investments-tab" class="tab-content">
-<form id="investment-form">
-  <input id="inv-name" placeholder="Nom">
-  <input id="inv-amount" type="number" step="0.01" placeholder="Capital">
-  <input id="inv-interest" type="number" step="0.01" placeholder="Intérêt %">
-  <input id="inv-date" type="date">
-  <select id="inv-currency"><option>USD</option><option>EUR</option><option>INR</option></select>
-  <button type="submit">Ajouter</button>
-</form>
+<div id="investments-tab" class="tab-content" style="display:none;">
+        <div class="form-section">
+            <h2>Add Investment</h2>
+            <form id="investment-form">
+                <input type="text" id="inv-name" placeholder="Investment Name" required>
+                <input type="number" id="inv-amount" placeholder="Principal Amount" step="0.01" required>
+                <select id="inv-category" required>
+                    <option value="Stocks">Stocks</option>
+                    <option value="Crypto">Crypto</option>
+                    <option value="Real Estate">Real Estate</option>
+                    <option value="Other">Other</option>
+                </select>
+                <input type="number" id="inv-interest" placeholder="Monthly Interest %" step="0.01" required>
+                <input type="date" id="inv-date" required>
+                <select id="inv-currency">
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="INR">INR</option>
+                </select>
+                <button type="submit">Add Investment</button>
+            </form>
      <h3>Add Monthly Interest</h3>
             <label for="select-investment">Select Investment:</label>
             <select id="select-investment">
@@ -137,3 +150,4 @@ window.db = getFirestore(window.app);
 <script type="module" src="script.js"></script>
 </body>
 </html>
+
