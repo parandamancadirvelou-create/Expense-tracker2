@@ -5,118 +5,149 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+/* ================= AUTH ================= */
+
 const auth = window.auth;
 
-// AUTH
+// Elements AUTH
 const authBox = document.getElementById("authBox");
 const appBox = document.getElementById("appBox");
 
-login.onclick = async () =>
-  signInWithEmailAndPassword(auth, email.value, password.value);
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
 
-register.onclick = async () =>
-  createUserWithEmailAndPassword(auth, email.value, password.value);
+const loginBtn = document.getElementById("login");
+const registerBtn = document.getElementById("register");
+const logoutBtn = document.getElementById("logout");
 
-logout.onclick = async () => signOut(auth);
-
-onAuthStateChanged(auth, u => {
-  authBox.style.display = u ? "none" : "block";
-  appBox.style.display = u ? "block" : "none";
+// Login
+loginBtn.addEventListener("click", async () => {
+  try {
+    await signInWithEmailAndPassword(
+      auth,
+      emailInput.value,
+      passwordInput.value
+    );
+  } catch (e) {
+    alert(e.message);
+  }
 });
 
-// DATA
+// Register
+registerBtn.addEventListener("click", async () => {
+  try {
+    await createUserWithEmailAndPassword(
+      auth,
+      emailInput.value,
+      passwordInput.value
+    );
+  } catch (e) {
+    alert(e.message);
+  }
+});
+
+// Logout
+logoutBtn.addEventListener("click", () => signOut(auth));
+
+// Auth state
+onAuthStateChanged(auth, user => {
+  authBox.style.display = user ? "none" : "block";
+  appBox.style.display = user ? "block" : "none";
+});
+
+/* ================= DATA ================= */
+
 let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
 let investments = JSON.parse(localStorage.getItem("investments")) || [];
 
-// TABS
-function showTab(tab){
-  document.querySelectorAll(".tab-content").forEach(t=>t.style.display="none");
-  document.getElementById(tab+"-tab").style.display="block";
-  document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("active"));
-  document.getElementById("tab-"+tab).classList.add("active");
-}
-tab-transactions.onclick = ()=>showTab("transactions");
-tab-investments.onclick = ()=>showTab("investments");
-tab-charts.onclick = ()=>showTab("charts");
+/* ================= TABS ================= */
 
-// TRANSACTIONS
-transaction-form.addEventListener("submit", e=>{
+const tabTransactions = document.getElementById("tab-transactions");
+const tabInvestments = document.getElementById("tab-investments");
+const tabCharts = document.getElementById("tab-charts");
+
+function showTab(tab) {
+  document.querySelectorAll(".tab-content")
+    .forEach(t => t.style.display = "none");
+
+  document.getElementById(`${tab}-tab`).style.display = "block";
+
+  document.querySelectorAll(".tabs button")
+    .forEach(b => b.classList.remove("active"));
+
+  document.getElementById(`tab-${tab}`).classList.add("active");
+}
+
+tabTransactions.onclick = () => showTab("transactions");
+tabInvestments.onclick = () => showTab("investments");
+tabCharts.onclick = () => showTab("charts");
+
+/* ================= TRANSACTIONS ================= */
+
+const transactionForm = document.getElementById("transaction-form");
+
+transactionForm.addEventListener("submit", e => {
   e.preventDefault();
+
   transactions.push({
-    name:name.value,
-    amount:+amount.value,
-    type:type.value,
-    category:category.value,
-    date:date.value,
-    currency:currency.value
+    name: document.getElementById("name").value,
+    amount: +document.getElementById("amount").value,
+    type: document.getElementById("type").value,
+    category: document.getElementById("category").value,
+    date: document.getElementById("date").value,
+    currency: document.getElementById("currency").value
   });
+
   save();
-  transaction-form.reset();
+  transactionForm.reset();
 });
 
-function renderTransactions(){
-  const tbody=document.querySelector("#transaction-table tbody");
-  tbody.innerHTML="";
-  transactions.forEach((t,i)=>{
-    tbody.innerHTML+=`
-    <tr>
-      <td>${t.name}</td><td>${t.amount}</td><td>${t.type}</td>
-      <td>${t.category}</td><td>${t.date}</td><td>${t.currency}</td>
-      <td><button onclick="delT(${i})">X</button></td>
-    </tr>`;
+function renderTransactions() {
+  const tbody = document.querySelector("#transaction-table tbody");
+  tbody.innerHTML = "";
+
+  transactions.forEach((t, i) => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${t.name}</td>
+        <td>${t.amount}</td>
+        <td>${t.type}</td>
+        <td>${t.category}</td>
+        <td>${t.date}</td>
+        <td>${t.currency}</td>
+        <td><button onclick="delT(${i})">X</button></td>
+      </tr>`;
   });
 }
-window.delT=i=>{transactions.splice(i,1);save();};
 
-// INVESTMENTS
-investment-form.addEventListener("submit", e=>{
-  e.preventDefault();
-  investments.push({
-    name:inv-name.value,
-    principal:+inv-amount.value,
-    interest:+inv-interest.value,
-    date:inv-date.value,
-    currency:inv-currency.value
-  });
+window.delT = i => {
+  transactions.splice(i, 1);
   save();
-  investment-form.reset();
-});
-
-function renderInvestments(){
-  const tbody=document.querySelector("#investment-table tbody");
-  tbody.innerHTML="";
-  investments.forEach((i,x)=>{
-    tbody.innerHTML+=`
-    <tr>
-      <td>${i.name}</td><td>${i.principal}</td><td>${i.interest}%</td>
-      <td>${i.currency}</td><td>${i.date}</td>
-      <td>${i.principal*i.interest/100}</td>
-      <td><button onclick="delI(${x})">X</button></td>
-    </tr>`;
-  });
-}
-window.delI=i=>{investments.splice(i,1);save();};
-
-// CSV
-export-csv-btn.onclick=()=>{
-  let csv="Name,Amount,Type,Category,Date,Currency\n";
-  transactions.forEach(t=>{
-    csv+=`${t.name},${t.amount},${t.type},${t.category},${t.date},${t.currency}\n`;
-  });
-  const a=document.createElement("a");
-  a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
-  a.download="export.csv";
-  a.click();
 };
 
-// SAVE
-function save(){
-  localStorage.setItem("transactions",JSON.stringify(transactions));
-  localStorage.setItem("investments",JSON.stringify(investments));
+/* ================= CSV ================= */
+
+document
+  .getElementById("export-csv-btn")
+  .onclick = () => {
+    let csv = "Name,Amount,Type,Category,Date,Currency\n";
+    transactions.forEach(t => {
+      csv += `${t.name},${t.amount},${t.type},${t.category},${t.date},${t.currency}\n`;
+    });
+
+    const a = document.createElement("a");
+    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+    a.download = "export.csv";
+    a.click();
+  };
+
+/* ================= SAVE ================= */
+
+function save() {
+  localStorage.setItem("transactions", JSON.stringify(transactions));
+  localStorage.setItem("investments", JSON.stringify(investments));
   renderTransactions();
-  renderInvestments();
 }
 
-// INIT
 save();
 showTab("transactions");
