@@ -176,7 +176,7 @@ investmentForm.addEventListener("submit", async e => {
   });
 
   // Sauvegarde dans Firestore et mise à jour tableau
-  await saveInvestments();
+  await save(); // <-- ici on remplace saveInvestments() par save()
 
   // Réinitialisation formulaire
   investmentForm.reset();
@@ -258,4 +258,5 @@ async function save() {
 /* ================= INIT ================= */
 
 showTab("transactions");
+
 
