@@ -4,79 +4,82 @@
 <meta charset="UTF-8">
 <title>Expense & Investment Tracker</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="style.css">
+
 <style>
   body { font-family: sans-serif; padding: 20px; }
-  input, select, button { margin: 5px; padding:5px; }
+  input, select, button { margin: 5px; padding: 5px; }
   table { border-collapse: collapse; margin-top: 10px; width: 100%; }
-  th, td { border:1px solid black; padding:5px; text-align: center; }
+  th, td { border: 1px solid black; padding: 5px; text-align: center; }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
   .tabs button.active { font-weight: bold; }
+  .controls { margin-bottom: 10px; }
 </style>
 </head>
+
 <body>
 
 <h1>Expense & Investment Tracker</h1>
 
-<!-- AUTH FORM -->
+<!-- AUTH -->
 <div id="authBox">
   <h2>Connexion / Inscription</h2>
-  <input type="email" id="email" placeholder="Email"><br>
-  <input type="password" id="password" placeholder="Mot de passe"><br>
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Mot de passe">
+  <br>
   <button id="login">Connexion</button>
   <button id="register">Créer un compte</button>
 </div>
 
 <!-- APP -->
 <div id="appBox" style="display:none;">
-<div class="controls">
-    <button id="export-csv-btn">Exporter CSV</button>
-</div>
 
-  <!-- Tabs -->
+  <div class="controls">
+    <button id="export-csv-btn">Exporter CSV</button>
+    <button id="logout">Déconnexion</button>
+  </div>
+
+  <!-- TABS -->
   <div class="tabs">
     <button id="tab-transactions" class="active">Transactions</button>
     <button id="tab-investments">Investments</button>
     <button id="tab-charts">Charts</button>
   </div>
 
-  <!-- TRANSACTIONS TAB -->
+  <!-- TRANSACTIONS -->
   <div id="transactions-tab" class="tab-content active">
     <h2>Ajouter une transaction</h2>
+
     <form id="transaction-form">
       <input type="text" id="name" placeholder="Nom" required>
       <input type="number" id="amount" placeholder="Montant" step="0.01" required>
+
       <select id="type" required>
         <option value="income">Income</option>
         <option value="expense">Expense</option>
       </select>
+
       <select id="category" required>
-        <option value="">-- Select Category --</option>
-        <optgroup label="Income">
-          <option value="Salary">Salary</option>
-          <option value="Bonus">Bonus</option>
-          <option value="Other">Other</option>
-        </optgroup>
-        <optgroup label="Expense">
-          <option value="Food">Food</option>
-          <option value="Transport">Transport</option>
-          <option value="Rent">Rent</option>
-          <option value="Other">Other</option>
-        </optgroup>
+        <option value="">-- Category --</option>
+        <option value="Salary">Salary</option>
+        <option value="Food">Food</option>
+        <option value="Rent">Rent</option>
+        <option value="Transport">Transport</option>
+        <option value="Other">Other</option>
       </select>
+
       <input type="date" id="date" required>
+
       <select id="currency">
         <option value="USD">USD</option>
         <option value="EUR">EUR</option>
         <option value="GBP">GBP</option>
-        <option value="INR">INR</option>
       </select>
+
       <button type="submit">Ajouter</button>
     </form>
 
-    <h2>Transactions</h2>
-    <table>
+    <table id="transaction-table">
       <thead>
         <tr>
           <th>Nom</th>
@@ -88,63 +91,73 @@
           <th>Action</th>
         </tr>
       </thead>
-      <tbody id="transactions"></tbody>
+      <tbody></tbody>
     </table>
   </div>
 
-  <!-- INVESTMENTS TAB -->
-    <div id="investments-tab" class="tab-content" style="display:none;">
-        <div class="form-section">
-            <h2>Add Investment</h2>
-            <form id="investment-form">
-                <input type="text" id="inv-name" placeholder="Investment Name" required>
-                <input type="number" id="inv-amount" placeholder="Principal Amount" step="0.01" required>
-                <select id="inv-category" required>
-                    <option value="Stocks">Stocks</option>
-                    <option value="Crypto">Crypto</option>
-                    <option value="Real Estate">Real Estate</option>
-                    <option value="Other">Other</option>
-                </select>
-                <input type="number" id="inv-interest" placeholder="Monthly Interest %" step="0.01" required>
-                <input type="date" id="inv-date" required>
-                <select id="inv-currency">
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="GBP">GBP</option>
-                    <option value="INR">INR</option>
-                </select>
-                <button type="submit">Add Investment</button>
-            </form>
+  <!-- INVESTMENTS -->
+  <div id="investments-tab" class="tab-content">
+    <h2>Ajouter un investissement</h2>
 
-            <h3>Add Monthly Interest</h3>
-            <label for="select-investment">Select Investment:</label>
-            <select id="select-investment">
-                <option value="">-- Select Investment --</option>
-            </select>
-            <label for="interest-date">Select Month for Interest:</label>
-            <input type="month" id="interest-date">
-            <label for="interest-amount">Enter Interest Amount (optional):</label>
-            <input type="number" id="interest-amount" placeholder="Interest Amount" step="0.01">
-            <button id="add-monthly-interest">Add Monthly Interest</button>
-        </div>
+    <form id="investment-form">
+      <input type="text" id="inv-name" placeholder="Nom" required>
+      <input type="number" id="inv-amount" placeholder="Principal" step="0.01" required>
 
-  <!-- CHARTS TAB -->
+      <select id="inv-category">
+        <option value="Stocks">Stocks</option>
+        <option value="Crypto">Crypto</option>
+        <option value="Real Estate">Real Estate</option>
+        <option value="Other">Other</option>
+      </select>
+
+      <input type="number" id="inv-interest" placeholder="Interest % / month" step="0.01" required>
+      <input type="date" id="inv-date" required>
+
+      <select id="inv-currency">
+        <option value="USD">USD</option>
+        <option value="EUR">EUR</option>
+      </select>
+
+      <button type="submit">Ajouter</button>
+    </form>
+
+    <table id="investment-table">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Principal</th>
+          <th>Interest %</th>
+          <th>Devise</th>
+          <th>Date début</th>
+          <th>Interest cumulé</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h3>Ajouter intérêt mensuel</h3>
+    <select id="select-investment"></select>
+    <input type="month" id="interest-date">
+    <input type="number" id="interest-amount" placeholder="Montant intérêt">
+    <button id="add-monthly-interest">Ajouter intérêt</button>
+  </div>
+
+  <!-- CHARTS -->
   <div id="charts-tab" class="tab-content">
-    <h2>Charts (exemple)</h2>
     <canvas id="overviewChart" height="200"></canvas>
   </div>
 
-  <button id="logout">Déconnexion</button>
 </div>
 
-<!-- Firebase -->
+<!-- Firebase init -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const firebaseConfig = {
- apiKey: "AIzaSyChlTQgk-BvdNf8jRskBY-kos_kCeQIWW0",
+  /* TA CONFIG FIREBASE */
+   apiKey: "AIzaSyChlTQgk-BvdNf8jRskBY-kos_kCeQIWW0",
   authDomain: "expense-traker-247d1.firebaseapp.com",
   projectId: "expense-traker-247d1",
   storageBucket: "expense-traker-247d1.firebasestorage.app",
@@ -154,29 +167,10 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-window.db = getFirestore(app);
 window.auth = getAuth(app);
 </script>
 
 <script type="module" src="script.js"></script>
 
-<script>
-// Tabs
-const tabs = document.querySelectorAll(".tabs button");
-const tabContents = document.querySelectorAll(".tab-content");
-
-tabs.forEach((tab, index) => {
-  tab.addEventListener("click", () => {
-    tabs.forEach(t => t.classList.remove("active"));
-    tab.classList.add("active");
-    tabContents.forEach(c => c.classList.remove("active"));
-    tabContents[index].classList.add("active");
-  });
-});
-</script>
-
 </body>
 </html>
-
-
-
