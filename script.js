@@ -148,6 +148,7 @@ window.delT = i => {
 
 /* ================= INVESTMENTS ================= */
 
+// Récupération du formulaire et des inputs
 const investmentForm = document.getElementById("investment-form");
 const invNameInput = document.getElementById("inv-name");
 const invAmountInput = document.getElementById("inv-amount");
@@ -155,9 +156,17 @@ const invInterestInput = document.getElementById("inv-interest");
 const invDateInput = document.getElementById("inv-date");
 const invCurrencyInput = document.getElementById("inv-currency");
 
-investmentForm.addEventListener("submit", e => {
-  e.preventDefault();
+// Submit form Investment
+investmentForm.addEventListener("submit", async e => {
+  e.preventDefault(); // empêche le rechargement
 
+  // Vérification basique
+  if (!invNameInput.value || !invAmountInput.value) {
+    alert("Veuillez saisir un nom et un capital.");
+    return;
+  }
+
+  // Ajouter à l'array
   investments.push({
     name: invNameInput.value,
     principal: +invAmountInput.value,
@@ -166,14 +175,19 @@ investmentForm.addEventListener("submit", e => {
     currency: invCurrencyInput.value
   });
 
-  save();
+  // Sauvegarde dans Firestore et mise à jour tableau
+  await saveInvestments();
+
+  // Réinitialisation formulaire
   investmentForm.reset();
 });
 
+// Fonction pour afficher la table des investissements
 function renderInvestments() {
   const tbody = document.querySelector("#investment-table tbody");
   tbody.innerHTML = "";
-  investments.forEach((i, x) => {
+
+  investments.forEach((i, idx) => {
     tbody.innerHTML += `
       <tr>
         <td>${i.name}</td>
@@ -182,14 +196,31 @@ function renderInvestments() {
         <td>${i.currency}</td>
         <td>${i.date}</td>
         <td>${(i.principal * i.interest / 100).toFixed(2)}</td>
-        <td><button onclick="delI(${x})">X</button></td>
+        <td>
+          <button onclick="editInvestment(${idx})">Éditer</button>
+          <button onclick="deleteInvestment(${idx})">X</button>
+        </td>
       </tr>`;
   });
 }
 
-window.delI = x => {
-  investments.splice(x, 1);
-  save();
+// Supprimer un investissement
+window.deleteInvestment = async idx => {
+  investments.splice(idx, 1);
+  await saveInvestments();
+};
+
+// Éditer un investissement
+window.editInvestment = idx => {
+  const i = investments[idx];
+  invNameInput.value = i.name;
+  invAmountInput.value = i.principal;
+  invInterestInput.value = i.interest;
+  invDateInput.value = i.date;
+  invCurrencyInput.value = i.currency;
+
+  investments.splice(idx, 1); // on supprime temporairement pour remplacer après submit
+  renderInvestments();
 };
 
 /* ================= CSV ================= */
@@ -227,3 +258,4 @@ async function save() {
 /* ================= INIT ================= */
 
 showTab("transactions");
+
