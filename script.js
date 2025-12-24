@@ -5,11 +5,20 @@ import {
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-/* ================= AUTH ================= */
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* ================= INIT FIRESTORE ================= */
 
 const auth = window.auth;
+const db = window.db;
 
-// Elements AUTH
+/* ================= AUTH ================= */
+
 const authBox = document.getElementById("authBox");
 const appBox = document.getElementById("appBox");
 
@@ -23,11 +32,8 @@ const logoutBtn = document.getElementById("logout");
 // Login
 loginBtn.addEventListener("click", async () => {
   try {
-    await signInWithEmailAndPassword(
-      auth,
-      emailInput.value,
-      passwordInput.value
-    );
+    const userCred = await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+    console.log("Connecté :", userCred.user.email);
   } catch (e) {
     alert(e.message);
   }
@@ -36,11 +42,8 @@ loginBtn.addEventListener("click", async () => {
 // Register
 registerBtn.addEventListener("click", async () => {
   try {
-    await createUserWithEmailAndPassword(
-      auth,
-      emailInput.value,
-      passwordInput.value
-    );
+    const userCred = await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+    console.log("Compte créé :", userCred.user.email);
   } catch (e) {
     alert(e.message);
   }
@@ -49,16 +52,34 @@ registerBtn.addEventListener("click", async () => {
 // Logout
 logoutBtn.addEventListener("click", () => signOut(auth));
 
-// Auth state
-onAuthStateChanged(auth, user => {
-  authBox.style.display = user ? "none" : "block";
-  appBox.style.display = user ? "block" : "none";
+// AuthState + charger les données Firestore
+let transactions = [];
+let investments = [];
+
+onAuthStateChanged(auth, async user => {
+  if (user) {
+    authBox.style.display = "none";
+    appBox.style.display = "block";
+
+    const userDocRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userDocRef);
+
+    if (userSnap.exists()) {
+      const data = userSnap.data();
+      transactions = data.transactions || [];
+      investments = data.investments || [];
+    } else {
+      await setDoc(userDocRef, { transactions: [], investments: [] });
+      transactions = [];
+      investments = [];
+    }
+
+    save();
+  } else {
+    authBox.style.display = "block";
+    appBox.style.display = "none";
+  }
 });
-
-/* ================= DATA ================= */
-
-let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
-let investments = JSON.parse(localStorage.getItem("investments")) || [];
 
 /* ================= TABS ================= */
 
@@ -67,14 +88,9 @@ const tabInvestments = document.getElementById("tab-investments");
 const tabCharts = document.getElementById("tab-charts");
 
 function showTab(tab) {
-  document.querySelectorAll(".tab-content")
-    .forEach(t => t.style.display = "none");
-
+  document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
   document.getElementById(`${tab}-tab`).style.display = "block";
-
-  document.querySelectorAll(".tabs button")
-    .forEach(b => b.classList.remove("active"));
-
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
   document.getElementById(`tab-${tab}`).classList.add("active");
 }
 
@@ -85,17 +101,23 @@ tabCharts.onclick = () => showTab("charts");
 /* ================= TRANSACTIONS ================= */
 
 const transactionForm = document.getElementById("transaction-form");
+const nameInput = document.getElementById("name");
+const amountInput = document.getElementById("amount");
+const typeInput = document.getElementById("type");
+const categoryInput = document.getElementById("category");
+const dateInput = document.getElementById("date");
+const currencyInput = document.getElementById("currency");
 
 transactionForm.addEventListener("submit", e => {
   e.preventDefault();
 
   transactions.push({
-    name: document.getElementById("name").value,
-    amount: +document.getElementById("amount").value,
-    type: document.getElementById("type").value,
-    category: document.getElementById("category").value,
-    date: document.getElementById("date").value,
-    currency: document.getElementById("currency").value
+    name: nameInput.value,
+    amount: +amountInput.value,
+    type: typeInput.value,
+    category: categoryInput.value,
+    date: dateInput.value,
+    currency: currencyInput.value
   });
 
   save();
@@ -105,7 +127,6 @@ transactionForm.addEventListener("submit", e => {
 function renderTransactions() {
   const tbody = document.querySelector("#transaction-table tbody");
   tbody.innerHTML = "";
-
   transactions.forEach((t, i) => {
     tbody.innerHTML += `
       <tr>
@@ -125,29 +146,84 @@ window.delT = i => {
   save();
 };
 
+/* ================= INVESTMENTS ================= */
+
+const investmentForm = document.getElementById("investment-form");
+const invNameInput = document.getElementById("inv-name");
+const invAmountInput = document.getElementById("inv-amount");
+const invInterestInput = document.getElementById("inv-interest");
+const invDateInput = document.getElementById("inv-date");
+const invCurrencyInput = document.getElementById("inv-currency");
+
+investmentForm.addEventListener("submit", e => {
+  e.preventDefault();
+
+  investments.push({
+    name: invNameInput.value,
+    principal: +invAmountInput.value,
+    interest: +invInterestInput.value,
+    date: invDateInput.value,
+    currency: invCurrencyInput.value
+  });
+
+  save();
+  investmentForm.reset();
+});
+
+function renderInvestments() {
+  const tbody = document.querySelector("#investment-table tbody");
+  tbody.innerHTML = "";
+  investments.forEach((i, x) => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${i.name}</td>
+        <td>${i.principal}</td>
+        <td>${i.interest}%</td>
+        <td>${i.currency}</td>
+        <td>${i.date}</td>
+        <td>${(i.principal * i.interest / 100).toFixed(2)}</td>
+        <td><button onclick="delI(${x})">X</button></td>
+      </tr>`;
+  });
+}
+
+window.delI = x => {
+  investments.splice(x, 1);
+  save();
+};
+
 /* ================= CSV ================= */
 
-document
-  .getElementById("export-csv-btn")
-  .onclick = () => {
-    let csv = "Name,Amount,Type,Category,Date,Currency\n";
-    transactions.forEach(t => {
-      csv += `${t.name},${t.amount},${t.type},${t.category},${t.date},${t.currency}\n`;
-    });
+const exportCsvBtn = document.getElementById("export-csv-btn");
+exportCsvBtn.onclick = () => {
+  let csv = "Name,Amount,Type,Category,Date,Currency\n";
+  transactions.forEach(t => {
+    csv += `${t.name},${t.amount},${t.type},${t.category},${t.date},${t.currency}\n`;
+  });
 
-    const a = document.createElement("a");
-    a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-    a.download = "export.csv";
-    a.click();
-  };
+  const a = document.createElement("a");
+  a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+  a.download = "export.csv";
+  a.click();
+};
 
 /* ================= SAVE ================= */
 
-function save() {
-  localStorage.setItem("transactions", JSON.stringify(transactions));
-  localStorage.setItem("investments", JSON.stringify(investments));
+async function save() {
   renderTransactions();
+  renderInvestments();
+
+  const user = auth.currentUser;
+  if (user) {
+    const userDocRef = doc(db, "users", user.uid);
+    await setDoc(userDocRef, { transactions, investments });
+  } else {
+    // fallback localStorage si pas connecté
+    localStorage.setItem("transactions", JSON.stringify(transactions));
+    localStorage.setItem("investments", JSON.stringify(investments));
+  }
 }
 
-save();
+/* ================= INIT ================= */
+
 showTab("transactions");
