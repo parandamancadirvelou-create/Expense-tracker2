@@ -5,21 +5,26 @@
 <title>Expense & Investment Tracker</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body { font-family: Arial; padding:20px; }
-input, select, button { margin:5px; padding:6px; }
-table { width:100%; border-collapse: collapse; margin-top:10px; }
-th, td { border:1px solid #333; padding:6px; text-align:center; }
-.tab-content { display:none; }
-.tabs button.active { font-weight:bold; }
-.controls { margin-bottom:15px; }
-canvas { width: 100%; height: 300px; margin-top:20px; }
+body { font-family: Arial; padding:10px; margin:0; }
+input, select, button { margin:5px 0; padding:8px; width:100%; box-sizing:border-box; }
+table { width:100%; border-collapse: collapse; margin-top:10px; font-size:14px; }
+th, td { border:1px solid #333; padding:6px; text-align:center; word-break:break-word; }
+.tab-content { display:none; padding-top:10px; }
+.tabs { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; }
+.tabs button { flex:1; padding:10px; font-size:14px; }
+.tabs button.active { font-weight:bold; background:#2196F3; color:white; }
+.controls { margin-bottom:15px; display:flex; flex-wrap:wrap; gap:5px; }
+canvas { width:100% !important; max-width:100%; height:300px !important; }
+@media(max-width:600px){
+  table, th, td { font-size:12px; }
+  input, select, button { font-size:14px; }
+}
 </style>
 </head>
 <body>
 
-<h1>Expense & Investment Tracker</h1>
+<h1 style="text-align:center;">Expense & Investment Tracker</h1>
 
-<!-- AUTH -->
 <div id="authBox">
   <input id="email" type="email" placeholder="Email"><br>
   <input id="password" type="password" placeholder="Mot de passe"><br>
@@ -27,7 +32,6 @@ canvas { width: 100%; height: 300px; margin-top:20px; }
   <button id="register">Créer un compte</button>
 </div>
 
-<!-- APP -->
 <div id="appBox" style="display:none;">
 
 <div class="controls">
@@ -41,7 +45,6 @@ canvas { width: 100%; height: 300px; margin-top:20px; }
   <button id="tab-charts">Graphiques</button>
 </div>
 
-<!-- TRANSACTIONS -->
 <div id="transactions-tab" class="tab-content" style="display:block;">
 <h3>Ajouter / Éditer Transaction</h3>
 <form id="transaction-form">
@@ -63,21 +66,14 @@ canvas { width: 100%; height: 300px; margin-top:20px; }
 <table id="transaction-table">
 <thead>
 <tr>
-  <th>Nom</th>
-  <th>Montant</th>
-  <th>Type</th>
-  <th>Catégorie</th>
-  <th>Date</th>
-  <th>Annotation</th>
-  <th>Devise</th>
-  <th>Action</th>
+  <th>Nom</th><th>Montant</th><th>Type</th><th>Catégorie</th>
+  <th>Date</th><th>Annotation</th><th>Devise</th><th>Action</th>
 </tr>
 </thead>
 <tbody></tbody>
 </table>
 </div>
 
-<!-- INVESTMENTS -->
 <div id="investments-tab" class="tab-content" style="display:none;">
 <h3>Ajouter / Éditer Investissement</h3>
 <form id="investment-form">
@@ -93,9 +89,7 @@ canvas { width: 100%; height: 300px; margin-top:20px; }
 </form>
 
 <h3>Ajouter Intérêt Mensuel</h3>
-<select id="select-investment">
-  <option value="">-- Sélectionner investissement --</option>
-</select>
+<select id="select-investment"><option value="">-- Sélectionner investissement --</option></select>
 <input id="interest-month" type="month" required>
 <input id="interest-paid-date" type="date" required>
 <input id="interest-amount" type="number" step="0.01" placeholder="Montant (optionnel)">
@@ -106,14 +100,8 @@ canvas { width: 100%; height: 300px; margin-top:20px; }
 <table id="investment-table">
 <thead>
 <tr>
-  <th>Nom</th>
-  <th>Principal</th>
-  <th>Taux %</th>
-  <th>Date début</th>
-  <th>Annotation</th>
-  <th>Devise</th>
-  <th>Intérêt cumulé</th>
-  <th>Action</th>
+<th>Nom</th><th>Principal</th><th>Taux %</th><th>Date début</th>
+<th>Annotation</th><th>Devise</th><th>Intérêt cumulé</th><th>Action</th>
 </tr>
 </thead>
 <tbody></tbody>
@@ -123,33 +111,26 @@ canvas { width: 100%; height: 300px; margin-top:20px; }
 <table id="interest-table">
 <thead>
 <tr>
-  <th>Investissement</th>
-  <th>Mois</th>
-  <th>Date paiement</th>
-  <th>Montant</th>
-  <th>Annotation</th>
-  <th>Action</th>
+<th>Investissement</th><th>Mois</th><th>Date paiement</th><th>Montant</th>
+<th>Annotation</th><th>Action</th>
 </tr>
 </thead>
 <tbody></tbody>
 </table>
 </div>
 
-<!-- CHARTS -->
 <div id="charts-tab" class="tab-content">
-  <h2>Transactions</h2>
-  <canvas id="transactionsChart"></canvas>
+<h2>Transactions</h2>
+<canvas id="transactionsChart"></canvas>
 
-  <h2 style="margin-top:40px;">Investments (Capital + Intérêts)</h2>
-  <canvas id="investmentsChart"></canvas>
+<h2 style="margin-top:20px;">Investments (Capital + Intérêts)</h2>
+<canvas id="investmentsChart"></canvas>
 </div>
 
 </div>
 
-<!-- LIBRARIES -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
