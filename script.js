@@ -4,17 +4,18 @@ import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/f
 const auth = window.auth;
 const db = window.db;
 
-// ======= DATA =======
+// ===== DATA =====
 let transactions = [];
 let investments = [];
 
-// ======= ELEMENTS =======
+// ===== ELEMENTS =====
 const emailEl = document.getElementById("email");
 const passwordEl = document.getElementById("password");
 const loginBtn = document.getElementById("login");
 const registerBtn = document.getElementById("register");
 const logoutBtn = document.getElementById("logout");
 
+// Transactions
 const transactionForm = document.getElementById("transaction-form");
 const tName = document.getElementById("name");
 const tAmount = document.getElementById("amount");
@@ -24,6 +25,7 @@ const tDate = document.getElementById("date");
 const tCurrency = document.getElementById("currency");
 const tAnnotation = document.getElementById("annotation");
 
+// Investments
 const investmentForm = document.getElementById("investment-form");
 const iName = document.getElementById("inv-name");
 const iAmount = document.getElementById("inv-amount");
@@ -32,16 +34,18 @@ const iStartDate = document.getElementById("inv-start-date");
 const iCurrency = document.getElementById("inv-currency");
 const iAnnotation = document.getElementById("inv-annotation");
 
+// Monthly interest
 const selectInvestment = document.getElementById("select-investment");
 const interestMonth = document.getElementById("interest-month");
 const interestPaidDate = document.getElementById("interest-paid-date");
 const interestAmount = document.getElementById("interest-amount");
+const interestAnnotation = document.getElementById("interest-annotation"); // New input
 const addMonthlyInterestBtn = document.getElementById("add-monthly-interest");
 
-// ======= AUTH =======
-loginBtn.onclick = () => signInWithEmailAndPassword(auth,emailEl.value,passwordEl.value).catch(e=>alert(e.message));
-registerBtn.onclick = () => createUserWithEmailAndPassword(auth,emailEl.value,passwordEl.value).catch(e=>alert(e.message));
-logoutBtn.onclick = () => signOut(auth);
+// ===== AUTH =====
+loginBtn.onclick = ()=>signInWithEmailAndPassword(auth,emailEl.value,passwordEl.value).catch(e=>alert(e.message));
+registerBtn.onclick = ()=>createUserWithEmailAndPassword(auth,emailEl.value,passwordEl.value).catch(e=>alert(e.message));
+logoutBtn.onclick = ()=>signOut(auth);
 
 onAuthStateChanged(auth, async user => {
     if(!user){
@@ -58,18 +62,18 @@ onAuthStateChanged(auth, async user => {
         const data = snap.data();
         transactions = data.transactions||[];
         investments = data.investments||[];
-        // initialiser annotation si absent
-        investments.forEach(inv => {
+        investments.forEach(inv=>{
             if(!inv.annotation) inv.annotation="";
             if(!inv.monthlyInterests) inv.monthlyInterests={};
+            for(const m of Object.keys(inv.monthlyInterests)){
+                if(!inv.monthlyInterests[m].annotation) inv.monthlyInterests[m].annotation="";
+            }
         });
-    } else {
-        await setDoc(userDoc,{transactions:[], investments:[]});
-    }
+    } else await setDoc(userDoc,{transactions:[],investments:[]});
     save();
 });
 
-// ======= TABS =======
+// ===== TABS =====
 ["transactions","investments","charts"].forEach(tab=>{
     document.getElementById(`tab-${tab}`).onclick=()=>{
         document.querySelectorAll(".tab-content").forEach(t=>t.style.display="none");
@@ -77,8 +81,8 @@ onAuthStateChanged(auth, async user => {
     };
 });
 
-// ======= TRANSACTIONS =======
-transactionForm.onsubmit = e => {
+// ===== TRANSACTIONS =====
+transactionForm.onsubmit = e=>{
     e.preventDefault();
     const idx = transactionForm.dataset.editIndex;
     const t = {
@@ -90,28 +94,21 @@ transactionForm.onsubmit = e => {
         annotation: tAnnotation.value,
         currency: tCurrency.value
     };
-    if(idx!==undefined){ transactions[idx]=t; delete transactionForm.dataset.editIndex; }
+    if(idx!==undefined){ transactions[idx]=t; delete transactionForm.dataset.editIndex;}
     else transactions.push(t);
     save(); transactionForm.reset();
 };
 
-window.editTransaction = i => {
+window.editTransaction=i=>{
     const t = transactions[i];
-    tName.value = t.name;
-    tAmount.value = t.amount;
-    tType.value = t.type;
-    tCategory.value = t.category;
-    tDate.value = t.date;
-    tAnnotation.value = t.annotation||"";
-    tCurrency.value = t.currency;
-    transactionForm.dataset.editIndex = i;
+    tName.value=t.name; tAmount.value=t.amount; tType.value=t.type; tCategory.value=t.category;
+    tDate.value=t.date; tAnnotation.value=t.annotation||""; tCurrency.value=t.currency;
+    transactionForm.dataset.editIndex=i;
 };
-
-window.delT = i => { transactions.splice(i,1); save(); };
+window.delT=i=>{ transactions.splice(i,1); save(); };
 
 function renderTransactions(){
-    const tbody = document.querySelector("#transaction-table tbody");
-    tbody.innerHTML="";
+    const tbody = document.querySelector("#transaction-table tbody"); tbody.innerHTML="";
     transactions.forEach((t,i)=>{
         tbody.innerHTML+=`<tr>
             <td>${t.name}</td>
@@ -126,51 +123,36 @@ function renderTransactions(){
     });
 }
 
-// ======= INVESTMENTS =======
-investmentForm.onsubmit = e => {
+// ===== INVESTMENTS =====
+investmentForm.onsubmit=e=>{
     e.preventDefault();
-    const idx = investmentForm.dataset.editIndex;
+    const idx=investmentForm.dataset.editIndex;
     if(idx!==undefined){
         const inv = investments[idx];
-        inv.name = iName.value;
-        inv.principal = parseFloat(iAmount.value);
-        inv.interest = parseFloat(iInterest.value);
-        inv.startDate = iStartDate.value;
-        inv.annotation = iAnnotation.value;
-        inv.currency = iCurrency.value;
+        inv.name=iName.value; inv.principal=parseFloat(iAmount.value); inv.interest=parseFloat(iInterest.value);
+        inv.startDate=iStartDate.value; inv.annotation=iAnnotation.value; inv.currency=iCurrency.value;
+        if(!inv.monthlyInterests) inv.monthlyInterests={};
         delete investmentForm.dataset.editIndex;
     } else {
         investments.push({
-            name: iName.value,
-            principal: parseFloat(iAmount.value),
-            interest: parseFloat(iInterest.value),
-            startDate: iStartDate.value,
-            annotation: iAnnotation.value,
-            currency: iCurrency.value,
-            monthlyInterests: {}
+            name:iName.value, principal:parseFloat(iAmount.value), interest:parseFloat(iInterest.value),
+            startDate:iStartDate.value, annotation:iAnnotation.value, currency:iCurrency.value, monthlyInterests:{}
         });
     }
     save(); investmentForm.reset();
 };
-
-window.editInvestment = i => {
-    const inv = investments[i];
-    iName.value = inv.name;
-    iAmount.value = inv.principal;
-    iInterest.value = inv.interest;
-    iStartDate.value = inv.startDate||"";
-    iAnnotation.value = inv.annotation||"";
-    iCurrency.value = inv.currency;
-    investmentForm.dataset.editIndex = i;
+window.editInvestment=i=>{
+    const inv=investments[i];
+    iName.value=inv.name; iAmount.value=inv.principal; iInterest.value=inv.interest;
+    iStartDate.value=inv.startDate||""; iAnnotation.value=inv.annotation||""; iCurrency.value=inv.currency;
+    investmentForm.dataset.editIndex=i;
 };
-
-window.deleteInvestment = i => { investments.splice(i,1); save(); };
+window.deleteInvestment=i=>{ investments.splice(i,1); save(); };
 
 function renderInvestments(){
-    const tbody = document.querySelector("#investment-table tbody");
-    tbody.innerHTML="";
+    const tbody=document.querySelector("#investment-table tbody"); tbody.innerHTML="";
     investments.forEach((inv,i)=>{
-        const accumulated = Object.values(inv.monthlyInterests||{}).reduce((a,b)=>a+b.amount,0).toFixed(2);
+        const accumulated=Object.values(inv.monthlyInterests||{}).reduce((a,b)=>a+b.amount,0).toFixed(2);
         tbody.innerHTML+=`<tr>
             <td>${inv.name}</td>
             <td>${inv.principal}</td>
@@ -185,54 +167,46 @@ function renderInvestments(){
     updateInvestmentSelect();
 }
 
-function updateInvestmentSelect(){
-    selectInvestment.innerHTML=`<option value="">-- Sélectionner investissement --</option>`;
-    investments.forEach((inv,i)=>{
-        const opt = document.createElement("option"); opt.value=i; opt.textContent=inv.name; selectInvestment.appendChild(opt);
-    });
-}
-
-// ======= MONTHLY INTERESTS =======
+// ===== MONTHLY INTERESTS =====
 addMonthlyInterestBtn.onclick=()=>{
-    const idx = selectInvestment.value;
-    if(idx==="") return alert("Sélectionnez un investissement");
-    const month = interestMonth.value;
-    const paidDate = interestPaidDate.value;
+    const idx=selectInvestment.value; if(idx==="") return alert("Sélectionnez un investissement");
+    const month=interestMonth.value; const paidDate=interestPaidDate.value;
     if(!month||!paidDate) return alert("Mois et date requis");
-    const inv = investments[idx];
-    const amt = parseFloat(interestAmount.value) || inv.principal*inv.interest/100;
-    inv.monthlyInterests[month] = {amount: amt, paidDate};
-    interestMonth.value=""; interestPaidDate.value=""; interestAmount.value="";
+    const inv=investments[idx];
+    const amt=parseFloat(interestAmount.value)||inv.principal*inv.interest/100;
+    const annot=interestAnnotation.value||"";
+    inv.monthlyInterests[month]={amount:amt, paidDate, annotation:annot};
+    interestMonth.value=""; interestPaidDate.value=""; interestAmount.value=""; interestAnnotation.value="";
     save();
 };
 
-window.deleteInterest = (invIdx,month) => { delete investments[invIdx].monthlyInterests[month]; save(); };
-window.editInterest = (invIdx,month) => {
-    const inv = investments[invIdx]; const data = inv.monthlyInterests[month];
-    selectInvestment.value = invIdx; interestMonth.value = month; interestPaidDate.value = data.paidDate; interestAmount.value = data.amount;
+window.editInterest=(invIdx,month)=>{
+    const data=investments[invIdx].monthlyInterests[month];
+    selectInvestment.value=invIdx; interestMonth.value=month; interestPaidDate.value=data.paidDate;
+    interestAmount.value=data.amount; interestAnnotation.value=data.annotation||"";
 };
+window.deleteInterest=(invIdx,month)=>{ delete investments[invIdx].monthlyInterests[month]; save(); };
 
 function renderMonthlyInterests(){
-    const tbody = document.querySelector("#interest-table tbody"); tbody.innerHTML="";
+    const tbody=document.querySelector("#interest-table tbody"); tbody.innerHTML="";
     investments.forEach((inv,i)=>Object.entries(inv.monthlyInterests||{}).forEach(([month,data])=>{
         tbody.innerHTML+=`<tr>
             <td>${inv.name}</td>
             <td>${month}</td>
             <td>${data.paidDate}</td>
             <td>${data.amount.toFixed(2)} ${inv.currency}</td>
+            <td>${data.annotation||""}</td>
             <td><button onclick="editInterest(${i},'${month}')">✏️</button> <button onclick="deleteInterest(${i},'${month}')">❌</button></td>
         </tr>`;
     }));
 }
 
-// ======= SAVE =======
+// ===== SAVE =====
 async function save(){
-    renderTransactions();
-    renderInvestments();
-    renderMonthlyInterests();
-    const user = auth.currentUser;
+    renderTransactions(); renderInvestments(); renderMonthlyInterests();
+    const user=auth.currentUser;
     if(user) await setDoc(doc(db,"users",user.uid),{transactions,investments});
 }
 
-// ======= INIT =======
+// ===== INIT =====
 document.getElementById("tab-transactions").click();
