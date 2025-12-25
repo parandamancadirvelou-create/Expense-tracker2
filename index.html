@@ -51,6 +51,7 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
   </select>
   <input id="category" placeholder="Catégorie">
   <input id="date" type="date" required>
+  <input id="annotation" placeholder="Annotation (optionnel)">
   <select id="currency">
     <option>USD</option><option>EUR</option><option>GBP</option><option>INR</option>
   </select>
@@ -59,7 +60,16 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
 
 <table id="transaction-table">
 <thead>
-<tr><th>Nom</th><th>Montant</th><th>Type</th><th>Catégorie</th><th>Date</th><th>Devise</th><th>Action</th></tr>
+<tr>
+  <th>Nom</th>
+  <th>Montant</th>
+  <th>Type</th>
+  <th>Catégorie</th>
+  <th>Date</th>
+  <th>Annotation</th>
+  <th>Devise</th>
+  <th>Action</th>
+</tr>
 </thead>
 <tbody></tbody>
 </table>
