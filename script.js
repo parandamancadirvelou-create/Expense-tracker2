@@ -304,169 +304,96 @@ async function save() {
     await setDoc(userDoc, data, { merge: true });
 }
 
-// ===== CSV IMPORT TRANSACTIONS =====
-const importCsvInput = document.getElementById("import-csv");
 
-importCsvInput.addEventListener("change", e => {
-    const file = e.target.files[0];
+// ================= IMPORT / EXPORT CSV (FINAL) =================
+const importBtn = document.getElementById("import-btn");
+const exportBtn = document.getElementById("export-btn");
+const importInput = document.getElementById("import-csv");
+
+// ===== IMPORT =====
+importBtn.addEventListener("click", () => {
+    console.log("📂 Clic import → ouverture explorateur");
+    importInput.click();
+});
+
+importInput.addEventListener("change", () => {
+    const file = importInput.files[0];
     if (!file) return;
 
+    console.log("📥 Fichier sélectionné :", file.name);
+
     const reader = new FileReader();
-    reader.onload = () => parseCSV(reader.result);
+    reader.onload = () => {
+        const lines = reader.result
+            .split("\n")
+            .map(l => l.trim())
+            .filter(Boolean);
+
+        if (lines.length < 2) {
+            alert("CSV invalide");
+            return;
+        }
+
+        const headers = lines.shift().split(",").map(h => h.trim());
+        let count = 0;
+
+        lines.forEach(line => {
+            const values = line.split(",");
+            const row = {};
+            headers.forEach((h, i) => row[h] = values[i]?.trim());
+
+            if (!row.amount || !row.date) return;
+
+            transactions.push({
+                name: row.name || "Import CSV",
+                amount: parseFloat(row.amount),
+                type: row.type || "expense",
+                category: row.category || "",
+                date: row.date,
+                currency: row.currency || "EUR",
+                annotation: row.annotation || ""
+            });
+            count++;
+        });
+
+        console.log(`✅ ${count} transactions importées`);
+        save();
+        alert(`${count} transactions importées`);
+        importInput.value = "";
+    };
+
     reader.readAsText(file);
 });
 
-function parseCSV(text) {
-    const lines = text.split("\n").map(l => l.trim()).filter(l => l);
-    if (lines.length < 2) {
-        alert("CSV vide ou invalide");
+// ===== EXPORT =====
+exportBtn.addEventListener("click", () => {
+    if (!transactions.length) {
+        alert("Aucune transaction à exporter");
         return;
     }
 
-    const headers = lines[0].split(",").map(h => h.trim());
-    const required = ["name","amount","type","category","date","annotation","currency"];
+    const headers = ["name","amount","type","category","date","currency","annotation"];
+    const rows = transactions.map(t =>
+        headers.map(h => `"${t[h] ?? ""}"`).join(",")
+    );
 
-    // Vérifier les colonnes
-    for (const col of required) {
-        if (!headers.includes(col)) {
-            alert(`Colonne manquante : ${col}`);
-            return;
-        }
-    }
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
 
-    const added = [];
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "transactions.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 
-    for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(",").map(v => v.trim());
-        const row = {};
-        headers.forEach((h, idx) => row[h] = values[idx] || "");
-
-        // Validation minimale
-        if (!row.name || !row.amount || !row.type || !row.date) continue;
-
-        added.push({
-            name: row.name,
-            amount: parseFloat(row.amount),
-            type: row.type,
-            category: row.category || "",
-            date: row.date,
-            annotation: row.annotation || "",
-            currency: row.currency || "EUR"
-        });
-    }
-
-    if (added.length === 0) {
-        alert("Aucune transaction valide trouvée");
-        return;
-    }
-
-    transactions.push(...added);
-    console.log("Transactions importées :", added);
-    save();
-
-    alert(`${added.length} transactions importées avec succès`);
-    importCsvInput.value = "";
-}
-
-// ================= IMPORT / EXPORT CSV =================
-document.addEventListener("DOMContentLoaded", () => {
-
-    const importBtn = document.getElementById("import-btn");
-    const exportBtn = document.getElementById("export-btn");
-    const importInput = document.getElementById("import-csv");
-
-    if (!importBtn || !exportBtn || !importInput) {
-        console.error("❌ Boutons import/export non trouvés");
-        return;
-    }
-
-    // ===== IMPORT =====
-    importBtn.onclick = () => importInput.click();
-
-    importInput.onchange = () => {
-        const file = importInput.files[0];
-        if (!file) return;
-
-        console.log("📥 Import fichier :", file.name);
-
-        const reader = new FileReader();
-        reader.onload = () => {
-            const lines = reader.result
-                .split("\n")
-                .map(l => l.trim())
-                .filter(Boolean);
-
-            if (lines.length < 2) {
-                alert("CSV invalide");
-                return;
-            }
-
-            const headers = lines.shift().split(",");
-
-            let imported = 0;
-
-            lines.forEach(line => {
-                const values = line.split(",");
-                const row = {};
-                headers.forEach((h, i) => row[h] = values[i]);
-
-                if (!row.amount || !row.date) return;
-
-                transactions.push({
-                    name: row.name || "Import CSV",
-                    amount: parseFloat(row.amount),
-                    type: row.type || "expense",
-                    category: row.category || "Autre",
-                    date: row.date,
-                    currency: row.currency || "EUR",
-                    annotation: row.annotation || "Import CSV"
-                });
-                imported++;
-            });
-
-            console.log(`✅ ${imported} transactions importées`);
-            save();
-            importInput.value = "";
-        };
-
-        reader.readAsText(file);
-    };
-
-    // ===== EXPORT =====
-    exportBtn.onclick = () => {
-        if (!transactions.length) {
-            alert("Aucune transaction à exporter");
-            return;
-        }
-
-        const headers = [
-            "name","amount","type","category",
-            "date","currency","annotation"
-        ];
-
-        const rows = transactions.map(t =>
-            headers.map(h => `"${t[h] ?? ""}"`).join(",")
-        );
-
-        const csv = [headers.join(","), ...rows].join("\n");
-
-        const blob = new Blob([csv], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "transactions.csv";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        console.log("📤 Export CSV terminé");
-    };
-
+    console.log("📤 Export CSV OK");
 });
 
 // ===== INIT =====
 document.getElementById("tab-transactions").click();
+
 
 
