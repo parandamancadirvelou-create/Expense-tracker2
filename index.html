@@ -134,13 +134,19 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
 </table>
 </div>
 
-<!-- CHARTS -->
-<div id="charts-tab" class="tab-content" style="display:none;">
-  <canvas id="transactionsChart" width="400" height="200"></canvas>
-  <canvas id="investmentsChart" width="400" height="200"></canvas>
+<!-- ================= CHARTS ================= -->
+<div id="charts-tab" class="tab-content">
+  <h2>Transactions</h2>
+  <canvas id="transactionsChart"></canvas>
+
+  <h2 style="margin-top:40px;">Investments (Capital + Interest)</h2>
+  <canvas id="investmentsChart"></canvas>
 </div>
 
 </div>
+
+<!-- ================= LIBRARIES ================= -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <!-- Firebase -->
 <script type="module">
@@ -167,3 +173,4 @@ window.db = getFirestore(window.app);
 <script type="module" src="script.js"></script>
 </body>
 </html>
+
