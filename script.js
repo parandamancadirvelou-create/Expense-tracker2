@@ -39,7 +39,7 @@ const selectInvestment = document.getElementById("select-investment");
 const interestMonth = document.getElementById("interest-month");
 const interestPaidDate = document.getElementById("interest-paid-date");
 const interestAmount = document.getElementById("interest-amount");
-const interestAnnotation = document.getElementById("interest-annotation"); // New input
+const interestAnnotation = document.getElementById("interest-annotation");
 const addMonthlyInterestBtn = document.getElementById("add-monthly-interest");
 
 // ===== AUTH =====
@@ -60,16 +60,18 @@ onAuthStateChanged(auth, async user => {
     const snap = await getDoc(userDoc);
     if(snap.exists()){
         const data = snap.data();
-        transactions = data.transactions||[];
-        investments = data.investments||[];
-        investments.forEach(inv=>{
-            if(!inv.annotation) inv.annotation="";
-            if(!inv.monthlyInterests) inv.monthlyInterests={};
-            for(const m of Object.keys(inv.monthlyInterests)){
-                if(!inv.monthlyInterests[m].annotation) inv.monthlyInterests[m].annotation="";
-            }
+        transactions = data.transactions || [];
+        investments = data.investments || [];
+        investments.forEach(inv => {
+            if(!inv.annotation) inv.annotation = "";
+            if(!inv.monthlyInterests) inv.monthlyInterests = {};
+            Object.values(inv.monthlyInterests).forEach(mi=>{
+                if(!mi.annotation) mi.annotation="";
+            });
         });
-    } else await setDoc(userDoc,{transactions:[],investments:[]});
+    } else {
+        await setDoc(userDoc,{transactions:[],investments:[]});
+    }
     save();
 });
 
@@ -124,9 +126,9 @@ function renderTransactions(){
 }
 
 // ===== INVESTMENTS =====
-investmentForm.onsubmit=e=>{
+investmentForm.onsubmit = e=>{
     e.preventDefault();
-    const idx=investmentForm.dataset.editIndex;
+    const idx = investmentForm.dataset.editIndex;
     if(idx!==undefined){
         const inv = investments[idx];
         inv.name=iName.value; inv.principal=parseFloat(iAmount.value); inv.interest=parseFloat(iInterest.value);
@@ -135,12 +137,18 @@ investmentForm.onsubmit=e=>{
         delete investmentForm.dataset.editIndex;
     } else {
         investments.push({
-            name:iName.value, principal:parseFloat(iAmount.value), interest:parseFloat(iInterest.value),
-            startDate:iStartDate.value, annotation:iAnnotation.value, currency:iCurrency.value, monthlyInterests:{}
+            name:iName.value,
+            principal:parseFloat(iAmount.value),
+            interest:parseFloat(iInterest.value),
+            startDate:iStartDate.value,
+            annotation:iAnnotation.value,
+            currency:iCurrency.value,
+            monthlyInterests:{}
         });
     }
     save(); investmentForm.reset();
 };
+
 window.editInvestment=i=>{
     const inv=investments[i];
     iName.value=inv.name; iAmount.value=inv.principal; iInterest.value=inv.interest;
@@ -168,6 +176,14 @@ function renderInvestments(){
 }
 
 // ===== MONTHLY INTERESTS =====
+function updateInvestmentSelect(){
+    selectInvestment.innerHTML=`<option value="">-- Sélectionner investissement --</option>`;
+    investments.forEach((inv,i)=>{
+        const opt=document.createElement("option"); opt.value=i; opt.textContent=inv.name;
+        selectInvestment.appendChild(opt);
+    });
+}
+
 addMonthlyInterestBtn.onclick=()=>{
     const idx=selectInvestment.value; if(idx==="") return alert("Sélectionnez un investissement");
     const month=interestMonth.value; const paidDate=interestPaidDate.value;
@@ -175,6 +191,7 @@ addMonthlyInterestBtn.onclick=()=>{
     const inv=investments[idx];
     const amt=parseFloat(interestAmount.value)||inv.principal*inv.interest/100;
     const annot=interestAnnotation.value||"";
+    if(!inv.monthlyInterests) inv.monthlyInterests={};
     inv.monthlyInterests[month]={amount:amt, paidDate, annotation:annot};
     interestMonth.value=""; interestPaidDate.value=""; interestAmount.value=""; interestAnnotation.value="";
     save();
@@ -189,17 +206,31 @@ window.deleteInterest=(invIdx,month)=>{ delete investments[invIdx].monthlyIntere
 
 function renderMonthlyInterests(){
     const tbody=document.querySelector("#interest-table tbody"); tbody.innerHTML="";
-    investments.forEach((inv,i)=>Object.entries(inv.monthlyInterests||{}).forEach(([month,data])=>{
-        tbody.innerHTML+=`<tr>
-            <td>${inv.name}</td>
-            <td>${month}</td>
-            <td>${data.paidDate}</td>
-            <td>${data.amount.toFixed(2)} ${inv.currency}</td>
-            <td>${data.annotation||""}</td>
-            <td><button onclick="editInterest(${i},'${month}')">✏️</button> <button onclick="deleteInterest(${i},'${month}')">❌</button></td>
-        </tr>`;
-    }));
+    investments.forEach((inv,i)=>{
+        if(!inv.monthlyInterests) inv.monthlyInterests={};
+        Object.entries(inv.monthlyInterests).forEach(([month,data])=>{
+            if(!data.annotation) data.annotation="";
+            tbody.innerHTML+=`<tr>
+                <td>${inv.name}</td>
+                <td>${month}</td>
+                <td>${data.paidDate}</td>
+                <td>${data.amount.toFixed(2)} ${inv.currency}</td>
+                <td>${data.annotation}</td>
+                <td>
+                    <button onclick="editInterest(${i},'${month}')">✏️</button>
+                    <button onclick="deleteInterest(${i},'${month}')">❌</button>
+                </td>
+            </tr>`;
+        });
+    });
 }
+
+// ===== EXPORT CSV =====
+document.getElementById("export-csv-btn").onclick=()=>{
+    let csv="Nom,Montant,Type,Catégorie,Date,Annotation,Devise\n";
+    transactions.forEach(t=>{ csv+=`${t.name},${t.amount},${t.type},${t.category},${t.date},${t.annotation||""},${t.currency}\n`; });
+    const a=document.createElement("a"); a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv); a.download="transactions.csv"; a.click();
+};
 
 // ===== SAVE =====
 async function save(){
@@ -210,3 +241,4 @@ async function save(){
 
 // ===== INIT =====
 document.getElementById("tab-transactions").click();
+updateInvestmentSelect();
