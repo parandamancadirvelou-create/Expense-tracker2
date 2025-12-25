@@ -67,40 +67,40 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
 
 <!-- INVESTMENTS -->
 <div id="investments-tab" class="tab-content" style="display:none;">
-  <form id="investment-form">
-      <input type="text" id="inv-name" placeholder="Nom investissement" required>
-      <input type="number" id="inv-amount" placeholder="Montant principal" step="0.01" required>
-      <input type="number" id="inv-interest" placeholder="Taux mensuel %" step="0.01" required>
-      <select id="inv-currency">
-          <option>USD</option><option>EUR</option><option>GBP</option><option>INR</option>
-      </select>
-      <button type="submit">Ajouter Investissement</button>
-  </form>
+<form id="investment-form">
+    <input type="text" id="inv-name" placeholder="Nom investissement" required>
+    <input type="number" id="inv-amount" placeholder="Montant principal" step="0.01" required>
+    <input type="number" id="inv-interest" placeholder="Taux mensuel %" step="0.01" required>
+    <select id="inv-currency">
+        <option>USD</option><option>EUR</option><option>GBP</option><option>INR</option>
+    </select>
+    <button type="submit">Ajouter Investissement</button>
+</form>
 
-  <h3>Ajouter Intérêt Mensuel</h3>
-  <select id="select-investment">
-    <option value="">-- Sélectionner investissement --</option>
-  </select>
-  <input id="interest-month" type="month" required>
-  <input id="interest-paid-date" type="date" required>
-  <input id="interest-amount" type="number" step="0.01" placeholder="Montant (optionnel)">
-  <button id="add-monthly-interest">Ajouter Intérêt</button>
+<h3>Ajouter Intérêt Mensuel</h3>
+<select id="select-investment">
+  <option value="">-- Sélectionner investissement --</option>
+</select>
+<input id="interest-month" type="month" required>
+<input id="interest-paid-date" type="date" required>
+<input id="interest-amount" type="number" step="0.01" placeholder="Montant (optionnel)">
+<button id="add-monthly-interest">Ajouter Intérêt</button>
 
-  <h3>Investissements</h3>
-  <table id="investment-table">
-    <thead>
-      <tr><th>Nom</th><th>Principal</th><th>Taux %</th><th>Devise</th><th>Intérêt cumulé</th><th>Action</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<h3>Investissements</h3>
+<table id="investment-table">
+  <thead>
+    <tr><th>Nom</th><th>Principal</th><th>Taux %</th><th>Devise</th><th>Intérêt cumulé</th><th>Action</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
-  <h3>Intérêts Mensuels</h3>
-  <table id="interest-table">
-    <thead>
-      <tr><th>Investissement</th><th>Mois</th><th>Date paiement</th><th>Montant</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<h3>Intérêts Mensuels</h3>
+<table id="interest-table">
+  <thead>
+    <tr><th>Investissement</th><th>Mois</th><th>Date paiement</th><th>Montant</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
 </div>
 
 <!-- CHARTS -->
