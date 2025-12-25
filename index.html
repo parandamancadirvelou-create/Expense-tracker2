@@ -38,11 +38,9 @@ h1,h2,h3 { text-align:center; }
 <div id="appBox" style="display:none;">
 
 <div class="controls">
-  <button id="export-csv-btn">Exporter CSV</button>
-  <button id="logout">Déconnexion</button>
-</div>
-  <button id="import-btn">📥 Importer transactions (CSV)</button>
-<input type="file" id="import-csv" accept=".csv" style="display:none">
+<button id="import-btn" type="button">📥 Importer CSV</button>
+<button id="export-btn" type="button">📤 Exporter CSV</button>
+<input type="file" id="import-csv" accept=".csv" hidden>
 <div class="tabs">
   <button id="tab-transactions" class="active">Transactions</button>
   <button id="tab-investments">Investissements</button>
@@ -169,4 +167,5 @@ window.db = getFirestore(window.app);
 <script type="module" src="script.js"></script>
 </body>
 </html>
+
 
