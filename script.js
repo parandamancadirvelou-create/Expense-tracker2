@@ -60,7 +60,6 @@ onAuthStateChanged(auth, async user => {
         transactions = data.transactions || [];
         investments = data.investments || [];
 
-        // Initialisation sécurisée
         investments.forEach(inv => {
             if (!inv.annotation) inv.annotation = "";
             if (!inv.monthlyInterests) inv.monthlyInterests = {};
@@ -228,9 +227,28 @@ function updateCharts() { renderTransactionsChart(); renderInvestmentsChart(); }
 
 // ===== SAVE =====
 async function save() {
-    renderTransactions(); renderInvestments(); renderMonthlyInterests(); updateCharts();
+    renderTransactions();
+    renderInvestments();
+    renderMonthlyInterests();
+    updateCharts();
+
     const user = auth.currentUser;
-    if (user) await setDoc(doc(db, user.uid), { transactions, investments }, { merge: true });
+    if (!user) return;
+
+    const userDoc = doc(db, "users", user.uid);
+    const snap = await getDoc(userDoc);
+    let data = { transactions, investments };
+
+    if (snap.exists()) {
+        const oldData = snap.data();
+        data.investments = investments.map((inv, i) => ({
+            ...oldData.investments?.[i],
+            ...inv,
+            monthlyInterests: { ...oldData.investments?.[i]?.monthlyInterests, ...inv.monthlyInterests }
+        }));
+    }
+
+    await setDoc(userDoc, data, { merge: true });
 }
 
 // ===== INIT =====
