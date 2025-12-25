@@ -24,30 +24,31 @@ const logoutBtn = document.getElementById("logout");
 let transactions = [];
 let investments = [];
 
-// Connexion / Création / Déconnexion
-loginBtn.addEventListener("click", async () => {
+let transactionsChart = null;
+let investmentsChart = null;
+
+// ================= LOGIN =================
+loginBtn.onclick = async () => {
   try { await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value); }
   catch(e){ alert(e.message); }
-});
-registerBtn.addEventListener("click", async () => {
+};
+registerBtn.onclick = async () => {
   try { await createUserWithEmailAndPassword(auth, emailInput.value, passwordInput.value); }
   catch(e){ alert(e.message); }
-});
-logoutBtn.addEventListener("click", () => signOut(auth));
+};
+logoutBtn.onclick = () => signOut(auth);
 
-// AuthState
+// ================= AUTH STATE =================
 onAuthStateChanged(auth, async user => {
   if(user){
     authBox.style.display="none"; appBox.style.display="block";
-    const userDocRef = doc(db,"users",user.uid);
-    const userSnap = await getDoc(userDocRef);
-    if(userSnap.exists()){
-      const data = userSnap.data();
-      transactions = data.transactions || [];
-      investments = data.investments || [];
+    const ref = doc(db,"users",user.uid);
+    const snap = await getDoc(ref);
+    if(snap.exists()){
+      transactions = snap.data().transactions || [];
+      investments = snap.data().investments || [];
     } else {
-      await setDoc(userDocRef,{transactions:[],investments:[]});
-      transactions = []; investments = [];
+      await setDoc(ref,{transactions:[],investments:[]});
     }
     save();
   } else {
@@ -61,6 +62,10 @@ function showTab(tab){
   document.getElementById(`${tab}-tab`).style.display="block";
   document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
   document.getElementById(`tab-${tab}`).classList.add("active");
+  if(tab === "charts"){
+    renderTransactionsChart();
+    renderInvestmentsChart();
+  }
 }
 document.getElementById("tab-transactions").onclick = () => showTab("transactions");
 document.getElementById("tab-investments").onclick = () => showTab("investments");
@@ -69,182 +74,133 @@ document.getElementById("tab-charts").onclick = () => showTab("charts");
 // ================= TRANSACTIONS =================
 const transactionForm = document.getElementById("transaction-form");
 
-transactionForm.addEventListener("submit", e => {
+transactionForm.onsubmit = e => {
   e.preventDefault();
-
-  const newTransaction = {
-    name: document.getElementById("name").value,
-    amount: +document.getElementById("amount").value,
-    type: document.getElementById("type").value,
-    category: document.getElementById("category").value,
-    date: document.getElementById("date").value,
-    currency: document.getElementById("currency").value
+  const t = {
+    name: name.value,
+    amount: +amount.value,
+    type: type.value,
+    category: category.value,
+    date: date.value,
+    currency: currency.value
   };
+  const idx = transactionForm.dataset.editIndex;
+  if(idx !== undefined){ transactions[idx] = t; delete transactionForm.dataset.editIndex; }
+  else transactions.push(t);
+  save(); transactionForm.reset();
+};
 
-  const editIndex = transactionForm.dataset.editIndex;
-  if(editIndex !== undefined){
-    transactions[editIndex] = newTransaction;
-    delete transactionForm.dataset.editIndex;
-  } else {
-    transactions.push(newTransaction);
-  }
-
-  save();
-  transactionForm.reset();
-});
-
-function renderTransactions() {
+function renderTransactions(){
   const tbody = document.querySelector("#transaction-table tbody");
-  tbody.innerHTML = "";
-
-  transactions.forEach((t, i) => {
-    tbody.innerHTML += `<tr>
-      <td>${t.name}</td>
-      <td>${t.amount}</td>
-      <td>${t.type}</td>
-      <td>${t.category}</td>
-      <td>${t.date}</td>
-      <td>${t.currency}</td>
-      <td>
-        <button onclick="editTransaction(${i})">Éditer</button>
-        <button onclick="delT(${i})">X</button>
-      </td>
+  tbody.innerHTML="";
+  transactions.forEach((t,i)=>{
+    tbody.innerHTML += `
+    <tr>
+      <td>${t.name}</td><td>${t.amount}</td><td>${t.type}</td>
+      <td>${t.category}</td><td>${t.date}</td><td>${t.currency}</td>
+      <td><button onclick="editTransaction(${i})">✏️</button>
+      <button onclick="delT(${i})">❌</button></td>
     </tr>`;
   });
 }
-
-window.delT = idx => { transactions.splice(idx,1); save(); };
-
-window.editTransaction = idx => {
-  const t = transactions[idx];
-  document.getElementById("name").value = t.name;
-  document.getElementById("amount").value = t.amount;
-  document.getElementById("type").value = t.type;
-  document.getElementById("category").value = t.category;
-  document.getElementById("date").value = t.date;
-  document.getElementById("currency").value = t.currency;
-  transactionForm.dataset.editIndex = idx;
+window.delT = i => { transactions.splice(i,1); save(); };
+window.editTransaction = i => {
+  const t = transactions[i];
+  name.value=t.name; amount.value=t.amount; type.value=t.type;
+  category.value=t.category; date.value=t.date; currency.value=t.currency;
+  transactionForm.dataset.editIndex=i;
 };
 
 // ================= INVESTMENTS =================
 const investmentForm = document.getElementById("investment-form");
-const invNameInput = document.getElementById("inv-name");
-const invAmountInput = document.getElementById("inv-amount");
-const invInterestInput = document.getElementById("inv-interest");
-const invDateInput = document.getElementById("inv-date");
-const invCurrencyInput = document.getElementById("inv-currency");
-const invCategoryInput = document.getElementById("inv-category");
-
 const selectInvestment = document.getElementById("select-investment");
-const interestDateInput = document.getElementById("interest-date");
 const interestAmountInput = document.getElementById("interest-amount");
-const addMonthlyInterestBtn = document.getElementById("add-monthly-interest");
 
-investmentForm.addEventListener("submit", async e => {
+investmentForm.onsubmit = e => {
   e.preventDefault();
-
-  const newInvestment = {
-    name: invNameInput.value,
-    principal: +invAmountInput.value,
-    category: invCategoryInput.value,
-    interest: +invInterestInput.value,
-    date: invDateInput.value,
-    currency: invCurrencyInput.value,
-    accumulatedInterest: 0
+  const inv = {
+    name: invName.value,
+    principal: +invAmount.value,
+    category: invCategory.value,
+    interest: +invInterest.value,
+    date: invDate.value,
+    currency: invCurrency.value,
+    accumulatedInterest: 0,
+    monthlyInterests: {}
   };
+  investments.push(inv);
+  save(); investmentForm.reset();
+};
 
-  const editIndex = investmentForm.dataset.editIndex;
-  if(editIndex !== undefined){
-    investments[editIndex] = newInvestment;
-    delete investmentForm.dataset.editIndex;
-  } else {
-    investments.push(newInvestment);
-  }
-
-  await save();
-  investmentForm.reset();
-});
-
-addMonthlyInterestBtn.addEventListener("click", async ()=>{
-  const idx = parseInt(selectInvestment.value);
-  if(isNaN(idx)) return alert("Sélectionnez un investissement");
+document.getElementById("add-monthly-interest").onclick = () => {
+  const idx = selectInvestment.value;
+  if(idx==="") return alert("Sélection requise");
   const inv = investments[idx];
-  let interestValue = parseFloat(interestAmountInput.value);
-  if(isNaN(interestValue) || interestValue <=0) interestValue = inv.principal * inv.interest / 100;
-  inv.accumulatedInterest = (inv.accumulatedInterest || 0) + interestValue;
-  await save();
-  selectInvestment.value = ""; interestDateInput.value = ""; interestAmountInput.value = "";
-  alert(`Intérêt ajouté : ${interestValue.toFixed(2)} ${inv.currency}`);
-});
+  const value = parseFloat(interestAmountInput.value) ||
+                (inv.principal * inv.interest / 100);
+  inv.accumulatedInterest += value;
+  save();
+  interestAmountInput.value="";
+};
 
 function updateInvestmentSelect(){
   selectInvestment.innerHTML = `<option value="">-- Select Investment --</option>`;
-  investments.forEach((inv,idx)=>{
-    const option = document.createElement("option");
-    option.value = idx; option.textContent = inv.name;
-    selectInvestment.appendChild(option);
+  investments.forEach((i,idx)=>{
+    selectInvestment.innerHTML += `<option value="${idx}">${i.name}</option>`;
   });
 }
 
 function renderInvestments(){
   const tbody = document.querySelector("#investment-table tbody");
-  tbody.innerHTML = "";
+  tbody.innerHTML="";
   investments.forEach((i,idx)=>{
-    tbody.innerHTML += `<tr>
-      <td>${i.name}</td>
-      <td>${i.principal}</td>
-      <td>${i.category}</td>
-      <td>${i.interest}%</td>
-      <td>${i.currency}</td>
-      <td>${i.date}</td>
-      <td>${(i.accumulatedInterest||0).toFixed(2)}</td>
-      <td>
-        <button onclick="editInvestment(${idx})">Éditer</button>
-        <button onclick="deleteInvestment(${idx})">X</button>
-      </td>
+    tbody.innerHTML += `
+    <tr>
+      <td>${i.name}</td><td>${i.principal}</td><td>${i.category}</td>
+      <td>${i.interest}%</td><td>${i.currency}</td><td>${i.date}</td>
+      <td>${i.accumulatedInterest.toFixed(2)}</td>
+      <td><button onclick="deleteInvestment(${idx})">❌</button></td>
     </tr>`;
   });
 }
+window.deleteInvestment = i => { investments.splice(i,1); save(); };
 
-window.deleteInvestment = async idx => {
-  investments.splice(idx,1);
-  await save();
-};
+// ================= CHARTS =================
+function renderTransactionsChart(){
+  if(transactionsChart) transactionsChart.destroy();
+  const income = transactions.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
+  const expense = transactions.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
 
-window.editInvestment = idx => {
-  const i = investments[idx];
-  invNameInput.value = i.name;
-  invAmountInput.value = i.principal;
-  invCategoryInput.value = i.category;
-  invInterestInput.value = i.interest;
-  invDateInput.value = i.date;
-  invCurrencyInput.value = i.currency;
-  investmentForm.dataset.editIndex = idx;
-};
+  transactionsChart = new Chart(document.getElementById("transactionsChart"),{
+    type:"doughnut",
+    data:{ labels:["Income","Expense"],
+      datasets:[{ data:[income,expense], backgroundColor:["#4CAF50","#F44336"] }] }
+  });
+}
 
-// ================= CSV export =================
-document.getElementById("export-csv-btn").onclick = () => {
-  let csv = "Name,Amount,Type,Category,Date,Currency\n";
-  transactions.forEach(t => csv += `${t.name},${t.amount},${t.type},${t.category},${t.date},${t.currency}\n`);
-  const a = document.createElement("a");
-  a.href = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
-  a.download = "export.csv";
-  a.click();
-};
+function renderInvestmentsChart(){
+  if(investmentsChart) investmentsChart.destroy();
+  investmentsChart = new Chart(document.getElementById("investmentsChart"),{
+    type:"bar",
+    data:{
+      labels: investments.map(i=>i.name),
+      datasets:[{
+        label:"Capital + Intérêts",
+        data: investments.map(i=>i.principal+i.accumulatedInterest),
+        backgroundColor:"#2196F3"
+      }]
+    }
+  });
+}
 
-// ================= Save =================
+// ================= SAVE =================
 async function save(){
   renderTransactions(); renderInvestments(); updateInvestmentSelect();
   const user = auth.currentUser;
   if(user){
-    const userDocRef = doc(db,"users",user.uid);
-    await setDoc(userDocRef,{transactions,investments});
-  } else {
-    localStorage.setItem("transactions",JSON.stringify(transactions));
-    localStorage.setItem("investments",JSON.stringify(investments));
+    await setDoc(doc(db,"users",user.uid),{transactions,investments});
   }
 }
 
-// ================= Init =================
+// ================= INIT =================
 showTab("transactions");
-updateInvestmentSelect();
