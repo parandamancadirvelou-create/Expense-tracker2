@@ -368,6 +368,105 @@ function parseCSV(text) {
     importCsvInput.value = "";
 }
 
+// ================= IMPORT / EXPORT CSV =================
+document.addEventListener("DOMContentLoaded", () => {
+
+    const importBtn = document.getElementById("import-btn");
+    const exportBtn = document.getElementById("export-btn");
+    const importInput = document.getElementById("import-csv");
+
+    if (!importBtn || !exportBtn || !importInput) {
+        console.error("❌ Boutons import/export non trouvés");
+        return;
+    }
+
+    // ===== IMPORT =====
+    importBtn.onclick = () => importInput.click();
+
+    importInput.onchange = () => {
+        const file = importInput.files[0];
+        if (!file) return;
+
+        console.log("📥 Import fichier :", file.name);
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const lines = reader.result
+                .split("\n")
+                .map(l => l.trim())
+                .filter(Boolean);
+
+            if (lines.length < 2) {
+                alert("CSV invalide");
+                return;
+            }
+
+            const headers = lines.shift().split(",");
+
+            let imported = 0;
+
+            lines.forEach(line => {
+                const values = line.split(",");
+                const row = {};
+                headers.forEach((h, i) => row[h] = values[i]);
+
+                if (!row.amount || !row.date) return;
+
+                transactions.push({
+                    name: row.name || "Import CSV",
+                    amount: parseFloat(row.amount),
+                    type: row.type || "expense",
+                    category: row.category || "Autre",
+                    date: row.date,
+                    currency: row.currency || "EUR",
+                    annotation: row.annotation || "Import CSV"
+                });
+                imported++;
+            });
+
+            console.log(`✅ ${imported} transactions importées`);
+            save();
+            importInput.value = "";
+        };
+
+        reader.readAsText(file);
+    };
+
+    // ===== EXPORT =====
+    exportBtn.onclick = () => {
+        if (!transactions.length) {
+            alert("Aucune transaction à exporter");
+            return;
+        }
+
+        const headers = [
+            "name","amount","type","category",
+            "date","currency","annotation"
+        ];
+
+        const rows = transactions.map(t =>
+            headers.map(h => `"${t[h] ?? ""}"`).join(",")
+        );
+
+        const csv = [headers.join(","), ...rows].join("\n");
+
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "transactions.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        console.log("📤 Export CSV terminé");
+    };
+
+});
+
 // ===== INIT =====
 document.getElementById("tab-transactions").click();
+
 
