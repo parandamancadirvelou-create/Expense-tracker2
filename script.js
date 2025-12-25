@@ -87,9 +87,8 @@ onAuthStateChanged(auth, async user => {
         document.getElementById(`tab-${tab}`).classList.add("active");
 
         if (tab === "charts") {
-            updateCharts();
-            if (transactionsChart) transactionsChart.resize();
-            if (investmentsChart) investmentsChart.resize();
+            // Mettre à jour les graphiques seulement quand l’onglet est visible
+            setTimeout(updateCharts, 50);
         }
     };
 });
@@ -265,7 +264,7 @@ function updateCharts() {
 
 // ===== SAVE =====
 async function save() {
-    renderTransactions(); renderInvestments(); renderMonthlyInterests(); updateCharts();
+    renderTransactions(); renderInvestments(); renderMonthlyInterests();
     const user = auth.currentUser;
     if (user) await setDoc(doc(db, "users", user.uid), { transactions, investments });
 }
