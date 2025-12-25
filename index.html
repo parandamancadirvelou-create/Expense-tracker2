@@ -4,18 +4,16 @@
 <meta charset="UTF-8">
 <title>Expense & Investment Tracker</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
-body { font-family: Arial, sans-serif; padding:20px; }
+body { font-family: Arial; padding:20px; }
 input, select, button { margin:5px; padding:6px; }
 table { width:100%; border-collapse: collapse; margin-top:10px; }
 th, td { border:1px solid #333; padding:6px; text-align:center; }
 .tab-content { display:none; }
 .tabs button.active { font-weight:bold; }
-canvas { max-width:100%; margin-top:20px; }
+.controls { margin-bottom:15px; }
 </style>
 </head>
-
 <body>
 
 <h1>Expense & Investment Tracker</h1>
@@ -31,12 +29,15 @@ canvas { max-width:100%; margin-top:20px; }
 <!-- APP -->
 <div id="appBox" style="display:none;">
 
-<button id="logout">Déconnexion</button>
+<div class="controls">
+  <button id="export-csv-btn">Exporter CSV</button>
+  <button id="logout">Déconnexion</button>
+</div>
 
 <div class="tabs">
   <button id="tab-transactions" class="active">Transactions</button>
-  <button id="tab-investments">Investments</button>
-  <button id="tab-charts">Charts</button>
+  <button id="tab-investments">Investissements</button>
+  <button id="tab-charts">Graphiques</button>
 </div>
 
 <!-- TRANSACTIONS -->
@@ -51,76 +52,66 @@ canvas { max-width:100%; margin-top:20px; }
   <input id="category" placeholder="Catégorie">
   <input id="date" type="date" required>
   <select id="currency">
-    <option>USD</option><option>EUR</option><option>GBP</option>
+    <option>USD</option><option>EUR</option><option>GBP</option><option>INR</option>
   </select>
   <button type="submit">Ajouter</button>
 </form>
 
 <table id="transaction-table">
 <thead>
-<tr>
-  <th>Nom</th><th>Montant</th><th>Type</th>
-  <th>Catégorie</th><th>Date</th><th>Devise</th><th>Action</th>
-</tr>
+<tr><th>Nom</th><th>Montant</th><th>Type</th><th>Catégorie</th><th>Date</th><th>Devise</th><th>Action</th></tr>
 </thead>
 <tbody></tbody>
 </table>
 </div>
 
 <!-- INVESTMENTS -->
-<div id="investments-tab" class="tab-content">
+<div id="investments-tab" class="tab-content" style="display:none;">
+  <form id="investment-form">
+      <input type="text" id="inv-name" placeholder="Nom investissement" required>
+      <input type="number" id="inv-amount" placeholder="Montant principal" step="0.01" required>
+      <input type="number" id="inv-interest" placeholder="Taux mensuel %" step="0.01" required>
+      <select id="inv-currency">
+          <option>USD</option><option>EUR</option><option>GBP</option><option>INR</option>
+      </select>
+      <button type="submit">Ajouter Investissement</button>
+  </form>
 
-<form id="investment-form">
-  <input id="invName" placeholder="Investment Name" required>
-  <input id="invAmount" type="number" step="0.01" placeholder="Principal" required>
-  <input id="invInterest" type="number" step="0.01" placeholder="Monthly Interest %" required>
-  <input id="invDate" type="date" required>
-  <select id="invCurrency">
-    <option>USD</option><option>EUR</option><option>GBP</option>
+  <h3>Ajouter Intérêt Mensuel</h3>
+  <select id="select-investment">
+    <option value="">-- Sélectionner investissement --</option>
   </select>
-  <button type="submit">Add Investment</button>
-</form>
+  <input id="interest-month" type="month" required>
+  <input id="interest-paid-date" type="date" required>
+  <input id="interest-amount" type="number" step="0.01" placeholder="Montant (optionnel)">
+  <button id="add-monthly-interest">Ajouter Intérêt</button>
 
-<h3>Add Monthly Interest</h3>
+  <h3>Investissements</h3>
+  <table id="investment-table">
+    <thead>
+      <tr><th>Nom</th><th>Principal</th><th>Taux %</th><th>Devise</th><th>Intérêt cumulé</th><th>Action</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-<select id="select-investment">
-  <option value="">-- Select Investment --</option>
-</select>
-
-<input id="interest-month" type="month" required>
-<input id="interest-paid-date" type="date" required>
-
-<input id="interest-amount" type="number" step="0.01"
-       placeholder="Interest amount (optional)">
-
-<button id="add-monthly-interest">Add Interest</button>
-
-<h3>Monthly Interest Details</h3>
-<table id="interest-table">
-  <thead>
-    <tr>
-      <th>Investment</th>
-      <th>Month</th>
-      <th>Payment Date</th>
-      <th>Interest Amount</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-
-
+  <h3>Intérêts Mensuels</h3>
+  <table id="interest-table">
+    <thead>
+      <tr><th>Investissement</th><th>Mois</th><th>Date paiement</th><th>Montant</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 </div>
 
 <!-- CHARTS -->
-<div id="charts-tab" class="tab-content">
-  <canvas id="transactionsChart"></canvas>
-  <canvas id="investmentsChart"></canvas>
+<div id="charts-tab" class="tab-content" style="display:none;">
+  <canvas id="transactionsChart" width="400" height="200"></canvas>
+  <canvas id="investmentsChart" width="400" height="200"></canvas>
 </div>
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+<!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -129,7 +120,11 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase
 const firebaseConfig = {
   apiKey: "AIzaSyChlTQgk-BvdNf8jRskBY-kos_kCeQIWW0",
   authDomain: "expense-traker-247d1.firebaseapp.com",
-  projectId: "expense-traker-247d1"
+  projectId: "expense-traker-247d1",
+  storageBucket: "expense-traker-247d1.appspot.com",
+  messagingSenderId: "1083688124128",
+  appId: "1:1083688124128:web:4e5c5c0313c5c8fe3cda85",
+  measurementId: "G-W0XV7P2X2H"
 };
 
 window.app = initializeApp(firebaseConfig);
@@ -137,8 +132,9 @@ window.auth = getAuth(window.app);
 window.db = getFirestore(window.app);
 </script>
 
-<script type="module" src="script.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<script type="module" src="script.js"></script>
 </body>
 </html>
-
