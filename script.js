@@ -201,6 +201,34 @@ function renderMonthlyInterests(){
     }));
 }
 
+// ================= CHARTS =================
+function renderTransactionsChart(){
+  if(transactionsChart) transactionsChart.destroy();
+  const income = transactions.filter(t=>t.type==="income").reduce((s,t)=>s+t.amount,0);
+  const expense = transactions.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+
+  transactionsChart = new Chart(document.getElementById("transactionsChart"),{
+    type:"doughnut",
+    data:{ labels:["Income","Expense"],
+      datasets:[{ data:[income,expense], backgroundColor:["#4CAF50","#F44336"] }] }
+  });
+}
+
+function renderInvestmentsChart(){
+  if(investmentsChart) investmentsChart.destroy();
+  investmentsChart = new Chart(document.getElementById("investmentsChart"),{
+    type:"bar",
+    data:{
+      labels: investments.map(i=>i.name),
+      datasets:[{
+        label:"Capital + Intérêts",
+        data: investments.map(i=>i.principal+i.accumulatedInterest),
+        backgroundColor:"#2196F3"
+      }]
+    }
+  });
+}
+
 // ===== SAVE =====
 async function save(){
     renderTransactions(); renderInvestments(); renderMonthlyInterests();
@@ -210,3 +238,4 @@ async function save(){
 
 // ===== INIT =====
 document.getElementById("tab-transactions").click();
+
