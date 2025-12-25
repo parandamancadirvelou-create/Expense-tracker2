@@ -50,6 +50,7 @@ loginBtn.onclick = () => signInWithEmailAndPassword(auth, emailEl.value, passwor
 registerBtn.onclick = () => createUserWithEmailAndPassword(auth, emailEl.value, passwordEl.value).catch(e => alert(e.message));
 logoutBtn.onclick = () => signOut(auth);
 
+// ===== ON AUTH STATE CHANGE =====
 onAuthStateChanged(auth, async user => {
     if (!user) {
         document.getElementById("authBox").style.display = "block";
@@ -65,16 +66,24 @@ onAuthStateChanged(auth, async user => {
         const data = snap.data();
         transactions = data.transactions || [];
         investments = data.investments || [];
+
+        // Init monthly interests
         investments.forEach(inv => {
             if (!inv.annotation) inv.annotation = "";
             if (!inv.monthlyInterests) inv.monthlyInterests = {};
-            for (const m of Object.keys(inv.monthlyInterests)) {
-                if (!inv.monthlyInterests[m].annotation) inv.monthlyInterests[m].annotation = "";
+            for (const month of Object.keys(inv.monthlyInterests)) {
+                if (!inv.monthlyInterests[month].annotation) inv.monthlyInterests[month].annotation = "";
             }
         });
-    } else await setDoc(userDoc, { transactions: [], investments: [] });
 
-    save();
+        // Render all tables, select, charts
+        renderTransactions();
+        renderInvestments();
+        renderMonthlyInterests();
+        updateCharts();
+    } else {
+        await setDoc(userDoc, { transactions: [], investments: [] });
+    }
 });
 
 // ===== TABS =====
@@ -86,7 +95,6 @@ onAuthStateChanged(auth, async user => {
         document.getElementById(`tab-${tab}`).classList.add("active");
 
         if(tab === "charts"){
-            // Redraw charts after tab is visible
             requestAnimationFrame(() => updateCharts());
         }
     };
