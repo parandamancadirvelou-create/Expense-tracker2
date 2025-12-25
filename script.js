@@ -86,10 +86,8 @@ onAuthStateChanged(auth, async user => {
         document.getElementById(`tab-${tab}`).classList.add("active");
 
         if(tab === "charts"){
-            // Crée les graphiques seulement quand l’onglet est visible
-            requestAnimationFrame(() => {
-                updateCharts();
-            });
+            // Redraw charts after tab is visible
+            requestAnimationFrame(() => updateCharts());
         }
     };
 });
@@ -266,6 +264,7 @@ function updateCharts() {
 // ===== SAVE =====
 async function save() {
     renderTransactions(); renderInvestments(); renderMonthlyInterests();
+    updateCharts();
     const user = auth.currentUser;
     if (user) await setDoc(doc(db, user.uid), { transactions, investments });
 }
