@@ -304,5 +304,70 @@ async function save() {
     await setDoc(userDoc, data, { merge: true });
 }
 
+// ===== CSV IMPORT TRANSACTIONS =====
+const importCsvInput = document.getElementById("import-csv");
+
+importCsvInput.addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => parseCSV(reader.result);
+    reader.readAsText(file);
+});
+
+function parseCSV(text) {
+    const lines = text.split("\n").map(l => l.trim()).filter(l => l);
+    if (lines.length < 2) {
+        alert("CSV vide ou invalide");
+        return;
+    }
+
+    const headers = lines[0].split(",").map(h => h.trim());
+    const required = ["name","amount","type","category","date","annotation","currency"];
+
+    // Vérifier les colonnes
+    for (const col of required) {
+        if (!headers.includes(col)) {
+            alert(`Colonne manquante : ${col}`);
+            return;
+        }
+    }
+
+    const added = [];
+
+    for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(",").map(v => v.trim());
+        const row = {};
+        headers.forEach((h, idx) => row[h] = values[idx] || "");
+
+        // Validation minimale
+        if (!row.name || !row.amount || !row.type || !row.date) continue;
+
+        added.push({
+            name: row.name,
+            amount: parseFloat(row.amount),
+            type: row.type,
+            category: row.category || "",
+            date: row.date,
+            annotation: row.annotation || "",
+            currency: row.currency || "EUR"
+        });
+    }
+
+    if (added.length === 0) {
+        alert("Aucune transaction valide trouvée");
+        return;
+    }
+
+    transactions.push(...added);
+    console.log("Transactions importées :", added);
+    save();
+
+    alert(`${added.length} transactions importées avec succès`);
+    importCsvInput.value = "";
+}
+
 // ===== INIT =====
 document.getElementById("tab-transactions").click();
+
