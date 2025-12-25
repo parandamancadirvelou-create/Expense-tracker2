@@ -5,7 +5,6 @@
 <title>Expense & Investment Tracker</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Styles -->
 <style>
 body { font-family: Arial, sans-serif; padding:20px; }
 input, select, button { margin:5px; padding:6px; }
@@ -13,7 +12,6 @@ table { width:100%; border-collapse: collapse; margin-top:10px; }
 th, td { border:1px solid #333; padding:6px; text-align:center; }
 .tab-content { display:none; }
 .tabs button.active { font-weight:bold; }
-.controls { margin-bottom:15px; }
 canvas { max-width:100%; margin-top:20px; }
 </style>
 </head>
@@ -22,7 +20,7 @@ canvas { max-width:100%; margin-top:20px; }
 
 <h1>Expense & Investment Tracker</h1>
 
-<!-- ================= AUTH ================= -->
+<!-- AUTH -->
 <div id="authBox">
   <input id="email" type="email" placeholder="Email"><br>
   <input id="password" type="password" placeholder="Mot de passe"><br>
@@ -30,22 +28,18 @@ canvas { max-width:100%; margin-top:20px; }
   <button id="register">Créer un compte</button>
 </div>
 
-<!-- ================= APP ================= -->
+<!-- APP -->
 <div id="appBox" style="display:none;">
 
-<div class="controls">
-  <button id="export-csv-btn">Exporter CSV</button>
-  <button id="logout">Déconnexion</button>
-</div>
+<button id="logout">Déconnexion</button>
 
-<!-- ================= TABS ================= -->
 <div class="tabs">
   <button id="tab-transactions" class="active">Transactions</button>
   <button id="tab-investments">Investments</button>
   <button id="tab-charts">Charts</button>
 </div>
 
-<!-- ================= TRANSACTIONS ================= -->
+<!-- TRANSACTIONS -->
 <div id="transactions-tab" class="tab-content" style="display:block;">
 <form id="transaction-form">
   <input id="name" placeholder="Nom" required>
@@ -57,10 +51,7 @@ canvas { max-width:100%; margin-top:20px; }
   <input id="category" placeholder="Catégorie">
   <input id="date" type="date" required>
   <select id="currency">
-    <option>USD</option>
-    <option>EUR</option>
-    <option>GBP</option>
-    <option>INR</option>
+    <option>USD</option><option>EUR</option><option>GBP</option>
   </select>
   <button type="submit">Ajouter</button>
 </form>
@@ -68,82 +59,63 @@ canvas { max-width:100%; margin-top:20px; }
 <table id="transaction-table">
 <thead>
 <tr>
-  <th>Nom</th>
-  <th>Montant</th>
-  <th>Type</th>
-  <th>Catégorie</th>
-  <th>Date</th>
-  <th>Devise</th>
-  <th>Action</th>
+  <th>Nom</th><th>Montant</th><th>Type</th>
+  <th>Catégorie</th><th>Date</th><th>Devise</th><th>Action</th>
 </tr>
 </thead>
 <tbody></tbody>
 </table>
 </div>
 
-<!-- ================= INVESTMENTS ================= -->
+<!-- INVESTMENTS -->
 <div id="investments-tab" class="tab-content">
 
-<h2>Add Investment</h2>
 <form id="investment-form">
   <input id="invName" placeholder="Investment Name" required>
   <input id="invAmount" type="number" step="0.01" placeholder="Principal" required>
-  <select id="invCategory">
-    <option value="Stocks">Stocks</option>
-    <option value="Crypto">Crypto</option>
-    <option value="Real Estate">Real Estate</option>
-    <option value="Other">Other</option>
-  </select>
   <input id="invInterest" type="number" step="0.01" placeholder="Monthly Interest %" required>
   <input id="invDate" type="date" required>
   <select id="invCurrency">
-    <option>USD</option>
-    <option>EUR</option>
-    <option>GBP</option>
-    <option>INR</option>
+    <option>USD</option><option>EUR</option><option>GBP</option>
   </select>
   <button type="submit">Add Investment</button>
 </form>
 
 <h3>Add Monthly Interest</h3>
-<select id="select-investment">
-  <option value="">-- Select Investment --</option>
-</select>
+<select id="select-investment"></select>
 <input id="interest-amount" type="number" step="0.01" placeholder="Interest amount (optional)">
-<button id="add-monthly-interest">Add Monthly Interest</button>
+<button id="add-monthly-interest">Add</button>
 
 <table id="investment-table">
 <thead>
 <tr>
-  <th>Name</th>
-  <th>Principal</th>
-  <th>Category</th>
-  <th>Monthly %</th>
-  <th>Currency</th>
-  <th>Start Date</th>
-  <th>Accumulated Interest</th>
-  <th>Action</th>
+  <th>Name</th><th>Principal</th><th>Interest %</th>
+  <th>Currency</th><th>Accumulated Interest</th><th>Action</th>
 </tr>
 </thead>
 <tbody></tbody>
 </table>
+
+<h3>Monthly Interests</h3>
+<table id="interest-table">
+<thead>
+<tr><th>Investment</th><th>Month</th><th>Interest</th></tr>
+</thead>
+<tbody></tbody>
+</table>
+
 </div>
 
-<!-- ================= CHARTS ================= -->
+<!-- CHARTS -->
 <div id="charts-tab" class="tab-content">
-  <h2>Transactions</h2>
   <canvas id="transactionsChart"></canvas>
-
-  <h2 style="margin-top:40px;">Investments (Capital + Interest)</h2>
   <canvas id="investmentsChart"></canvas>
 </div>
 
 </div>
 
-<!-- ================= LIBRARIES ================= -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- ================= FIREBASE ================= -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -152,10 +124,7 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase
 const firebaseConfig = {
   apiKey: "AIzaSyChlTQgk-BvdNf8jRskBY-kos_kCeQIWW0",
   authDomain: "expense-traker-247d1.firebaseapp.com",
-  projectId: "expense-traker-247d1",
-  storageBucket: "expense-traker-247d1.firebasestorage.app",
-  messagingSenderId: "1083688124128",
-  appId: "1:1083688124128:web:4e5c5c0313c5c8fe3cda85"
+  projectId: "expense-traker-247d1"
 };
 
 window.app = initializeApp(firebaseConfig);
@@ -163,7 +132,6 @@ window.auth = getAuth(window.app);
 window.db = getFirestore(window.app);
 </script>
 
-<!-- ================= APP SCRIPT ================= -->
 <script type="module" src="script.js"></script>
 
 </body>
