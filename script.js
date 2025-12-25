@@ -9,10 +9,11 @@ import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/f
 const auth = window.auth;
 const db = window.db;
 
+// Données
 let transactions = [];
 let investments = [];
 
-// DOM elements
+// DOM
 const emailEl = document.getElementById("email");
 const passwordEl = document.getElementById("password");
 const login = document.getElementById("login");
@@ -78,20 +79,34 @@ transactionForm.onsubmit = e=>{
   else transactions.push(t);
   save(); e.target.reset();
 };
-window.editTransaction=i=>{const t=transactions[i]; name.value=t.name; amount.value=t.amount; type.value=t.type; category.value=t.category; date.value=t.date; currency.value=t.currency; transactionForm.dataset.editIndex=i;};
+
+window.editTransaction=i=>{
+  const t=transactions[i];
+  name.value=t.name; amount.value=t.amount; type.value=t.type; category.value=t.category;
+  date.value=t.date; currency.value=t.currency;
+  transactionForm.dataset.editIndex=i;
+};
+
 window.delT=i=>{transactions.splice(i,1); save();};
 
 // ================= INVESTMENTS =================
 investmentForm.onsubmit=e=>{
   e.preventDefault();
-  const idx=e.target.dataset.editIndex;
+  const idx=investmentForm.dataset.editIndex;
+
   if(idx!==undefined){
+    // Édition
     const inv=investments[idx];
-    inv.name=invName.value; inv.principal=+invAmount.value; inv.interest=+invInterest.value; inv.currency=invCurrency.value;
-    delete e.target.dataset.editIndex;
+    inv.name=invName.value;
+    inv.principal=+invAmount.value;
+    inv.interest=+invInterest.value;
+    inv.currency=invCurrency.value;
+    delete investmentForm.dataset.editIndex;
   } else {
+    // Nouveau
     investments.push({name:invName.value,principal:+invAmount.value,interest:+invInterest.value,currency:invCurrency.value,monthlyInterests:{}});
   }
+
   save(); e.target.reset();
 };
 
@@ -100,7 +115,10 @@ window.editInvestment=i=>{
   invName.value=inv.name; invAmount.value=inv.principal; invInterest.value=inv.interest; invCurrency.value=inv.currency;
   investmentForm.dataset.editIndex=i;
 };
-window.deleteInvestment=i=>{investments.splice(i,1); save();};
+
+window.deleteInvestment=i=>{
+  investments.splice(i,1); save();
+};
 
 // ================= ADD MONTHLY INTEREST =================
 addMonthlyInterestBtn.onclick=()=>{
