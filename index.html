@@ -45,6 +45,7 @@ canvas { width:100% !important; max-width:100%; height:300px !important; }
   <button id="tab-charts">Graphiques</button>
 </div>
 
+<!-- TRANSACTIONS -->
 <div id="transactions-tab" class="tab-content" style="display:block;">
 <h3>Ajouter / Éditer Transaction</h3>
 <form id="transaction-form">
@@ -74,6 +75,7 @@ canvas { width:100% !important; max-width:100%; height:300px !important; }
 </table>
 </div>
 
+<!-- INVESTMENTS -->
 <div id="investments-tab" class="tab-content" style="display:none;">
 <h3>Ajouter / Éditer Investissement</h3>
 <form id="investment-form">
@@ -119,6 +121,7 @@ canvas { width:100% !important; max-width:100%; height:300px !important; }
 </table>
 </div>
 
+<!-- CHARTS -->
 <div id="charts-tab" class="tab-content">
 <h2>Transactions</h2>
 <canvas id="transactionsChart"></canvas>
@@ -129,8 +132,10 @@ canvas { width:100% !important; max-width:100%; height:300px !important; }
 
 </div>
 
+<!-- LIBRARIES -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
