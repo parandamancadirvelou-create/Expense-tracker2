@@ -4,15 +4,18 @@ import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/f
 const auth = window.auth;
 const db = window.db;
 
+// ===== DATA =====
 let transactions = [];
 let investments = [];
 
+// ===== ELEMENTS =====
 const emailEl = document.getElementById("email");
 const passwordEl = document.getElementById("password");
 const loginBtn = document.getElementById("login");
 const registerBtn = document.getElementById("register");
 const logoutBtn = document.getElementById("logout");
 
+// Transactions
 const transactionForm = document.getElementById("transaction-form");
 const tName = document.getElementById("name");
 const tAmount = document.getElementById("amount");
@@ -22,6 +25,7 @@ const tDate = document.getElementById("date");
 const tCurrency = document.getElementById("currency");
 const tAnnotation = document.getElementById("annotation");
 
+// Investments
 const investmentForm = document.getElementById("investment-form");
 const iName = document.getElementById("inv-name");
 const iAmount = document.getElementById("inv-amount");
@@ -30,6 +34,7 @@ const iStartDate = document.getElementById("inv-start-date");
 const iCurrency = document.getElementById("inv-currency");
 const iAnnotation = document.getElementById("inv-annotation");
 
+// Monthly interest
 const selectInvestment = document.getElementById("select-investment");
 const interestMonth = document.getElementById("interest-month");
 const interestPaidDate = document.getElementById("interest-paid-date");
@@ -44,12 +49,15 @@ loginBtn.onclick = () => signInWithEmailAndPassword(auth, emailEl.value, passwor
 registerBtn.onclick = () => createUserWithEmailAndPassword(auth, emailEl.value, passwordEl.value).catch(e => alert(e.message));
 logoutBtn.onclick = () => signOut(auth);
 
+// ===== TRACE DATA =====
 onAuthStateChanged(auth, async user => {
     if (!user) {
+        console.log("Utilisateur non connecté");
         document.getElementById("authBox").style.display = "block";
         document.getElementById("appBox").style.display = "none";
         return;
     }
+    console.log("Utilisateur connecté :", user.uid);
     document.getElementById("authBox").style.display = "none";
     document.getElementById("appBox").style.display = "block";
 
@@ -57,6 +65,8 @@ onAuthStateChanged(auth, async user => {
     const snap = await getDoc(userDoc);
     if (snap.exists()) {
         const data = snap.data();
+        console.log("Données récupérées depuis Firestore :", data);
+
         transactions = data.transactions || [];
         investments = data.investments || [];
 
@@ -73,6 +83,7 @@ onAuthStateChanged(auth, async user => {
         renderMonthlyInterests();
         updateCharts();
     } else {
+        console.log("Aucun document Firestore trouvé, création d'un nouveau document");
         await setDoc(userDoc, { transactions: [], investments: [] }, { merge: true });
     }
 });
@@ -207,10 +218,46 @@ function calculateAccumulatedInterest(inv) { return Object.values(inv.monthlyInt
 
 function renderTransactionsChart() {
     if (transactionsChart) transactionsChart.destroy();
-    const income = transactions.filter(t => t.type === "income").reduce((s, t) => s + t.amount, 0);
-    const expense = transactions.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+
+    const months = [];
+    const monthLabels = [];
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,"0")}`;
+        months.push(key);
+        monthLabels.push(d.toLocaleString('fr-FR',{ month:'short', year:'numeric' }));
+    }
+
+    const incomePerMonth = Array(12).fill(0);
+    const expensePerMonth = Array(12).fill(0);
+
+    transactions.forEach(t => {
+        const tMonth = t.date.slice(0,7);
+        const idx = months.indexOf(tMonth);
+        if (idx !== -1) {
+            if(t.type==="income") incomePerMonth[idx] += t.amount;
+            else if(t.type==="expense") expensePerMonth[idx] += t.amount;
+        }
+    });
+
     const ctx = document.getElementById("transactionsChart").getContext("2d");
-    transactionsChart = new Chart(ctx, { type: "doughnut", data: { labels: ["Income", "Expense"], datasets: [{ data: [income, expense], backgroundColor: ["#4CAF50", "#F44336"] }] }, options: { responsive: true, maintainAspectRatio: false } });
+    transactionsChart = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: monthLabels,
+            datasets: [
+                { label: "Income", data: incomePerMonth, backgroundColor: "#4CAF50" },
+                { label: "Expense", data: expensePerMonth, backgroundColor: "#F44336" }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: "top" } },
+            scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } }
+        }
+    });
 }
 
 function renderInvestmentsChart() {
@@ -218,14 +265,17 @@ function renderInvestmentsChart() {
     const ctx = document.getElementById("investmentsChart").getContext("2d");
     investmentsChart = new Chart(ctx, {
         type: "bar",
-        data: { labels: investments.map(i => i.name), datasets: [{ label: "Capital + Intérêts", data: investments.map(i => i.principal + calculateAccumulatedInterest(i)), backgroundColor: "#2196F3" }] },
+        data: {
+            labels: investments.map(i => i.name),
+            datasets: [{ label: "Capital + Intérêts", data: investments.map(i => i.principal + calculateAccumulatedInterest(i)), backgroundColor: "#2196F3" }]
+        },
         options: { responsive: true, maintainAspectRatio: false }
     });
 }
 
 function updateCharts() { renderTransactionsChart(); renderInvestmentsChart(); }
 
-// ===== SAVE =====
+// ===== SAVE AVEC LOG =====
 async function save() {
     renderTransactions();
     renderInvestments();
@@ -233,7 +283,7 @@ async function save() {
     updateCharts();
 
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) { console.log("Aucun utilisateur connecté, save annulée"); return; }
 
     const userDoc = doc(db, "users", user.uid);
     const snap = await getDoc(userDoc);
@@ -241,6 +291,8 @@ async function save() {
 
     if (snap.exists()) {
         const oldData = snap.data();
+        console.log("Anciennes données Firestore :", oldData);
+
         data.investments = investments.map((inv, i) => ({
             ...oldData.investments?.[i],
             ...inv,
@@ -248,6 +300,7 @@ async function save() {
         }));
     }
 
+    console.log("Données sauvegardées sur Firestore :", data);
     await setDoc(userDoc, data, { merge: true });
 }
 
