@@ -73,6 +73,7 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
   <input type="text" id="inv-name" placeholder="Nom investissement" required>
   <input type="number" id="inv-amount" placeholder="Montant principal" step="0.01" required>
   <input type="number" id="inv-interest" placeholder="Taux mensuel %" step="0.01" required>
+  <input type="date" id="inv-start-date" required>
   <select id="inv-currency">
     <option>USD</option><option>EUR</option><option>GBP</option><option>INR</option>
   </select>
@@ -91,7 +92,15 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
 <h3>Investissements</h3>
 <table id="investment-table">
   <thead>
-    <tr><th>Nom</th><th>Principal</th><th>Taux %</th><th>Devise</th><th>Intérêt cumulé</th><th>Action</th></tr>
+    <tr>
+      <th>Nom</th>
+      <th>Principal</th>
+      <th>Taux %</th>
+      <th>Date début</th>
+      <th>Devise</th>
+      <th>Intérêt cumulé</th>
+      <th>Action</th>
+    </tr>
   </thead>
   <tbody></tbody>
 </table>
@@ -134,9 +143,7 @@ window.auth = getAuth(window.app);
 window.db = getFirestore(window.app);
 </script>
 
-<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script type="module" src="script.js"></script>
 </body>
 </html>
