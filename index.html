@@ -4,41 +4,42 @@
 <meta charset="UTF-8">
 <title>Expense & Investment Tracker</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
-body { font-family: Arial; margin:0; padding:10px; background:#f5f5f5; }
-input, select, button { width:100%; padding:8px; margin:5px 0; }
-table { width:100%; border-collapse:collapse; background:#fff; }
-th, td { border:1px solid #ccc; padding:6px; text-align:center; }
-.tabs { display:flex; gap:5px; margin:10px 0; }
-.tabs button { flex:1; padding:10px; border:none; background:#ddd; }
-.tabs button.active { background:#2196F3; color:#fff; font-weight:bold; }
-.tab-content { display:none; }
-.controls { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px; }
-.chart-wrapper { width:100%; height:320px; }
-canvas { width:100%!important; height:100%!important; }
+body { font-family: Arial; padding:10px; margin:0; background:#f5f5f5; }
+input, select, button { margin:5px 0; padding:8px; width:100%; box-sizing:border-box; }
+table { width:100%; border-collapse: collapse; margin-top:10px; font-size:14px; background:white; }
+th, td { border:1px solid #333; padding:6px; text-align:center; word-break:break-word; }
+.tab-content { display:none; padding-top:10px; }
+.tabs { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; }
+.tabs button { flex:1; padding:10px; font-size:14px; cursor:pointer; border:none; border-radius:5px; background:#ddd; }
+.tabs button.active { font-weight:bold; background:#2196F3; color:white; }
+.controls { margin-bottom:15px; display:flex; flex-wrap:wrap; gap:5px; }
+canvas { width:100% !important; max-width:100%; height:300px !important; background:white; border-radius:5px; }
+h1,h2,h3 { text-align:center; }
+@media(max-width:600px){
+  table, th, td { font-size:12px; }
+  input, select, button { font-size:14px; }
+}
 </style>
 </head>
-
 <body>
 
 <h1>Expense & Investment Tracker</h1>
 
 <!-- AUTH -->
 <div id="authBox">
-  <input id="email" type="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Mot de passe">
+  <input id="email" type="email" placeholder="Email"><br>
+  <input id="password" type="password" placeholder="Mot de passe"><br>
   <button id="login">Connexion</button>
   <button id="register">Créer un compte</button>
 </div>
 
 <!-- APP -->
-<div id="appBox" style="display:none">
+<div id="appBox" style="display:none;">
 
 <div class="controls">
-  <button id="import-btn" type="button">📥 Import CSV</button>
-  <button id="export-btn" type="button">📤 Export CSV</button>
-  <input id="import-csv" type="file" accept=".csv" hidden>
+  <button id="export-csv-btn">Exporter CSV</button>
+  <button id="logout">Déconnexion</button>
 </div>
 
 <div class="tabs">
@@ -48,49 +49,96 @@ canvas { width:100%!important; height:100%!important; }
 </div>
 
 <!-- TRANSACTIONS -->
-<div id="transactions-tab" class="tab-content" style="display:block">
+<div id="transactions-tab" class="tab-content" style="display:block;">
+<h3>Ajouter / Éditer Transaction</h3>
 <form id="transaction-form">
   <input id="name" placeholder="Nom" required>
   <input id="amount" type="number" step="0.01" placeholder="Montant" required>
-  <select id="type"><option value="income">Income</option><option value="expense">Expense</option></select>
+  <select id="type">
+    <option value="income">Income</option>
+    <option value="expense">Expense</option>
+  </select>
   <select id="category">
-    <option>Salaire</option><option>Alimentation</option><option>Transport</option><option>Autre</option>
+    <option value="">-- Sélectionner catégorie --</option>
+    <option value="Salaire">Salaire</option>
+    <option value="Alimentation">Alimentation</option>
+    <option value="Transport">Transport</option>
+    <option value="Divertissement">Divertissement</option>
+    <option value="Santé">Santé</option>
+    <option value="Autre">Autre</option>
   </select>
   <input id="date" type="date" required>
-  <select id="currency"><option>EUR</option><option>USD</option></select>
-  <input id="annotation" placeholder="Annotation">
+  <input id="annotation" placeholder="Annotation (optionnel)">
+  <select id="currency">
+    <option>USD</option><option>EUR</option><option>GBP</option><option>INR</option>
+  </select>
   <button type="submit">Ajouter</button>
 </form>
 
 <table id="transaction-table">
 <thead>
-<tr><th>Nom</th><th>Montant</th><th>Type</th><th>Catégorie</th><th>Date</th><th>Devise</th></tr>
+<tr>
+  <th>Nom</th><th>Montant</th><th>Type</th><th>Catégorie</th>
+  <th>Date</th><th>Annotation</th><th>Devise</th><th>Action</th>
+</tr>
 </thead>
 <tbody></tbody>
 </table>
 </div>
 
 <!-- INVESTMENTS -->
-<div id="investments-tab" class="tab-content">
+<div id="investments-tab" class="tab-content" style="display:none;">
+<h3>Ajouter / Éditer Investissement</h3>
 <form id="investment-form">
-  <input id="inv-name" placeholder="Nom investissement" required>
-  <input id="inv-amount" type="number" step="0.01" placeholder="Montant" required>
-  <input id="inv-interest" type="number" step="0.01" placeholder="Taux %" required>
-  <input id="inv-start-date" type="date" required>
-  <button type="submit">Ajouter</button>
+  <input type="text" id="inv-name" placeholder="Nom investissement" required>
+  <input type="number" id="inv-amount" placeholder="Montant principal" step="0.01" required>
+  <input type="number" id="inv-interest" placeholder="Taux mensuel %" step="0.01" required>
+  <input type="date" id="inv-start-date" required>
+  <input type="text" id="inv-annotation" placeholder="Annotation (optionnel)">
+  <select id="inv-currency">
+    <option>USD</option><option>EUR</option><option>GBP</option><option>INR</option>
+  </select>
+  <button type="submit">Ajouter Investissement</button>
 </form>
 
-<select id="select-investment"></select>
-<input id="interest-month" type="month">
-<input id="interest-paid-date" type="date">
-<input id="interest-amount" type="number" step="0.01">
-<button id="add-monthly-interest">Ajouter intérêt</button>
+<h3>Ajouter Intérêt Mensuel</h3>
+<select id="select-investment"><option value="">-- Sélectionner investissement --</option></select>
+<input id="interest-month" type="month" required>
+<input id="interest-paid-date" type="date" required>
+<input id="interest-amount" type="number" step="0.01" placeholder="Montant (optionnel)">
+<input id="interest-annotation" type="text" placeholder="Annotation (optionnel)">
+<button id="add-monthly-interest">Ajouter Intérêt</button>
+
+<h3>Investissements</h3>
+<table id="investment-table">
+<thead>
+<tr>
+<th>Nom</th><th>Principal</th><th>Taux %</th><th>Date début</th>
+<th>Annotation</th><th>Devise</th><th>Intérêt cumulé</th><th>Action</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<h3>Intérêts Mensuels</h3>
+<table id="interest-table">
+<thead>
+<tr>
+<th>Investissement</th><th>Mois</th><th>Date paiement</th><th>Montant</th>
+<th>Annotation</th><th>Action</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
 </div>
 
 <!-- CHARTS -->
 <div id="charts-tab" class="tab-content">
-<div class="chart-wrapper"><canvas id="transactionsChart"></canvas></div>
-<div class="chart-wrapper"><canvas id="investmentsChart"></canvas></div>
+<h2>Transactions par Mois</h2>
+<canvas id="transactionsChart"></canvas>
+
+<h2 style="margin-top:20px;">Investments (Capital + Intérêts)</h2>
+<canvas id="investmentsChart"></canvas>
 </div>
 
 </div>
@@ -106,11 +154,15 @@ const firebaseConfig = {
   apiKey: "AIzaSyChlTQgk-BvdNf8jRskBY-kos_kCeQIWW0",
   authDomain: "expense-traker-247d1.firebaseapp.com",
   projectId: "expense-traker-247d1",
+  storageBucket: "expense-traker-247d1.appspot.com",
+  messagingSenderId: "1083688124128",
+  appId: "1:1083688124128:web:4e5c5c0313c5c8fe3cda85",
+  measurementId: "G-W0XV7P2X2H"
 };
 
 window.app = initializeApp(firebaseConfig);
-window.auth = getAuth(app);
-window.db = getFirestore(app);
+window.auth = getAuth(window.app);
+window.db = getFirestore(window.app);
 </script>
 
 <script type="module" src="script.js"></script>
