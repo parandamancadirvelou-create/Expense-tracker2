@@ -139,30 +139,6 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
 
 </div>
 
-  <!-- Firebase -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyChlTQgk-BvdNf8jRskBY-kos_kCeQIWW0",
-  authDomain: "expense-traker-247d1.firebaseapp.com",
-  projectId: "expense-traker-247d1",
-  storageBucket: "expense-traker-247d1.appspot.com",
-  messagingSenderId: "1083688124128",
-  appId: "1:1083688124128:web:4e5c5c0313c5c8fe3cda85",
-  measurementId: "G-W0XV7P2X2H"
-};
-
-window.app = initializeApp(firebaseConfig);
-window.auth = getAuth(window.app);
-window.db = getFirestore(window.app);
-</script>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script type="module" src="script.js"></script>
 </body>
 </html>
-
-
