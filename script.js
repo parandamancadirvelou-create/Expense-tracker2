@@ -32,6 +32,7 @@ const investmentForm = document.getElementById("investment-form");
 const iName = document.getElementById("inv-name");
 const iAmount = document.getElementById("inv-amount");
 const iInterest = document.getElementById("inv-interest");
+const iStartDate = document.getElementById("inv-start-date");
 const iCurrency = document.getElementById("inv-currency");
 
 const selectInvestment = document.getElementById("select-investment");
@@ -120,10 +121,11 @@ investmentForm.onsubmit = e => {
         inv.name = iName.value;
         inv.principal = parseFloat(iAmount.value);
         inv.interest = parseFloat(iInterest.value);
+        inv.startDate = iStartDate.value;
         inv.currency = iCurrency.value;
         delete investmentForm.dataset.editIndex;
     } else {
-        investments.push({name:iName.value,principal:parseFloat(iAmount.value),interest:parseFloat(iInterest.value),currency:iCurrency.value,monthlyInterests:{}});
+        investments.push({name:iName.value,principal:parseFloat(iAmount.value),interest:parseFloat(iInterest.value),startDate:iStartDate.value,currency:iCurrency.value,monthlyInterests:{}});
     }
     save();
     investmentForm.reset();
@@ -134,6 +136,7 @@ window.editInvestment = i => {
     iName.value = inv.name;
     iAmount.value = inv.principal;
     iInterest.value = inv.interest;
+    iStartDate.value = inv.startDate || "";
     iCurrency.value = inv.currency;
     investmentForm.dataset.editIndex = i;
 };
@@ -154,11 +157,7 @@ addMonthlyInterestBtn.onclick = ()=>{
     save();
 };
 
-window.deleteInterest = (invIdx, month) => {
-    delete investments[invIdx].monthlyInterests[month];
-    save();
-};
-
+window.deleteInterest = (invIdx, month) => { delete investments[invIdx].monthlyInterests[month]; save(); };
 window.editInterest = (invIdx, month) => {
     const inv = investments[invIdx];
     const data = inv.monthlyInterests[month];
@@ -187,7 +186,12 @@ function renderInvestments(){
     tbody.innerHTML = "";
     investments.forEach((inv,i)=>{
         tbody.innerHTML += `<tr>
-            <td>${inv.name}</td><td>${inv.principal}</td><td>${inv.interest}%</td><td>${inv.currency}</td><td>${getAccumulatedInterest(inv).toFixed(2)}</td>
+            <td>${inv.name}</td>
+            <td>${inv.principal}</td>
+            <td>${inv.interest}%</td>
+            <td>${inv.startDate || ""}</td>
+            <td>${inv.currency}</td>
+            <td>${getAccumulatedInterest(inv).toFixed(2)}</td>
             <td><button onclick="editInvestment(${i})">✏️</button> <button onclick="deleteInvestment(${i})">❌</button></td>
         </tr>`;
     });
@@ -220,8 +224,8 @@ function updateInvestmentSelect(){
 document.getElementById("export-csv-btn").onclick = ()=>{
     let csv = "Transactions\nNom,Montant,Type,Catégorie,Date,Devise\n";
     transactions.forEach(t=>csv+=`${t.name},${t.amount},${t.type},${t.category},${t.date},${t.currency}\n`);
-    csv+="\nInvestissements\nNom,Principal,Taux %,Devise,Intérêt cumulé\n";
-    investments.forEach(inv=>csv+=`${inv.name},${inv.principal},${inv.interest},${inv.currency},${getAccumulatedInterest(inv).toFixed(2)}\n`);
+    csv+="\nInvestissements\nNom,Principal,Taux %,Date début,Devise,Intérêt cumulé\n";
+    investments.forEach(inv=>csv+=`${inv.name},${inv.principal},${inv.interest},${inv.startDate},${inv.currency},${getAccumulatedInterest(inv).toFixed(2)}\n`);
     csv+="\nIntérêts Mensuels\nInvestissement,Mois,Date paiement,Montant\n";
     investments.forEach(inv=>Object.entries(inv.monthlyInterests||{}).forEach(([month,d])=>csv+=`${inv.name},${month},${d.paidDate},${d.amount.toFixed(2)}\n`));
     const a=document.createElement("a");
