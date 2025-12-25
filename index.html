@@ -41,7 +41,8 @@ h1,h2,h3 { text-align:center; }
   <button id="export-csv-btn">Exporter CSV</button>
   <button id="logout">Déconnexion</button>
 </div>
-
+  <button id="import-btn">📥 Importer transactions (CSV)</button>
+<input type="file" id="import-csv" accept=".csv" style="display:none">
 <div class="tabs">
   <button id="tab-transactions" class="active">Transactions</button>
   <button id="tab-investments">Investissements</button>
@@ -168,3 +169,4 @@ window.db = getFirestore(window.app);
 <script type="module" src="script.js"></script>
 </body>
 </html>
+
