@@ -9,7 +9,6 @@ let transactions = [];
 let investments = [];
 
 // ===== ELEMENTS =====
-// Auth
 const emailEl = document.getElementById("email");
 const passwordEl = document.getElementById("password");
 const loginBtn = document.getElementById("login");
@@ -86,9 +85,11 @@ onAuthStateChanged(auth, async user => {
         document.querySelectorAll(".tabs button").forEach(b => b.classList.remove("active"));
         document.getElementById(`tab-${tab}`).classList.add("active");
 
-        if (tab === "charts") {
-            // Mettre à jour les graphiques seulement quand l’onglet est visible
-            setTimeout(updateCharts, 50);
+        if(tab === "charts"){
+            // Crée les graphiques seulement quand l’onglet est visible
+            requestAnimationFrame(() => {
+                updateCharts();
+            });
         }
     };
 });
@@ -266,7 +267,7 @@ function updateCharts() {
 async function save() {
     renderTransactions(); renderInvestments(); renderMonthlyInterests();
     const user = auth.currentUser;
-    if (user) await setDoc(doc(db, "users", user.uid), { transactions, investments });
+    if (user) await setDoc(doc(db, user.uid), { transactions, investments });
 }
 
 // ===== INIT =====
