@@ -4,7 +4,6 @@ import {
   signOut,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
 import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const auth = window.auth;
@@ -13,7 +12,6 @@ const db = window.db;
 let transactions = [];
 let investments = [];
 
-// === DOM ===
 const emailEl = document.getElementById("email");
 const passwordEl = document.getElementById("password");
 const loginBtn = document.getElementById("login");
@@ -27,6 +25,7 @@ const tType = document.getElementById("type");
 const tCategory = document.getElementById("category");
 const tDate = document.getElementById("date");
 const tCurrency = document.getElementById("currency");
+const tAnnotation = document.getElementById("annotation");
 
 const investmentForm = document.getElementById("investment-form");
 const iName = document.getElementById("inv-name");
@@ -42,43 +41,36 @@ const interestAmount = document.getElementById("interest-amount");
 const addMonthlyInterestBtn = document.getElementById("add-monthly-interest");
 
 // === AUTH ===
-loginBtn.onclick = () => signInWithEmailAndPassword(auth,emailEl.value,passwordEl.value).catch(e=>alert(e.message));
-registerBtn.onclick = () => createUserWithEmailAndPassword(auth,emailEl.value,passwordEl.value).catch(e=>alert(e.message));
-logoutBtn.onclick = () => signOut(auth);
+loginBtn.onclick = ()=>signInWithEmailAndPassword(auth,emailEl.value,passwordEl.value).catch(e=>alert(e.message));
+registerBtn.onclick = ()=>createUserWithEmailAndPassword(auth,emailEl.value,passwordEl.value).catch(e=>alert(e.message));
+logoutBtn.onclick = ()=>signOut(auth);
 
-onAuthStateChanged(auth, async user => {
-    if(!user){
-        document.getElementById("authBox").style.display="block";
-        document.getElementById("appBox").style.display="none";
-        return;
-    }
+onAuthStateChanged(auth, async user=>{
+    if(!user){ document.getElementById("authBox").style.display="block"; document.getElementById("appBox").style.display="none"; return;}
     document.getElementById("authBox").style.display="none";
     document.getElementById("appBox").style.display="block";
-
     const userDoc = doc(db,"users",user.uid);
     const snap = await getDoc(userDoc);
     if(snap.exists()){
         const data = snap.data();
-        transactions = data.transactions || [];
-        investments = data.investments || [];
-        investments.forEach(inv => { if(!inv.monthlyInterests) inv.monthlyInterests={}; });
-    } else {
-        await setDoc(userDoc,{transactions:[], investments:[]});
-    }
+        transactions = data.transactions||[];
+        investments = data.investments||[];
+        investments.forEach(inv=>{if(!inv.monthlyInterests)inv.monthlyInterests={}});
+    } else { await setDoc(userDoc,{transactions:[], investments:[]}); }
     save();
 });
 
 // === TABS ===
 ["transactions","investments","charts"].forEach(tab=>{
-    document.getElementById(`tab-${tab}`).onclick = ()=>{
+    document.getElementById(`tab-${tab}`).onclick=()=>{
         document.querySelectorAll(".tab-content").forEach(t=>t.style.display="none");
         document.getElementById(`${tab}-tab`).style.display="block";
         if(tab==="charts") renderCharts();
-    }
+    };
 });
 
 // === TRANSACTIONS ===
-transactionForm.onsubmit = e => {
+transactionForm.onsubmit = e=>{
     e.preventDefault();
     const idx = transactionForm.dataset.editIndex;
     const t = {
@@ -87,168 +79,103 @@ transactionForm.onsubmit = e => {
         type: tType.value,
         category: tCategory.value,
         date: tDate.value,
+        annotation: tAnnotation.value,
         currency: tCurrency.value
     };
-    if(idx !== undefined){
-        transactions[idx] = t;
-        delete transactionForm.dataset.editIndex;
-    } else {
-        transactions.push(t);
-    }
-    save();
-    transactionForm.reset();
+    if(idx!==undefined){transactions[idx]=t; delete transactionForm.dataset.editIndex;}
+    else transactions.push(t);
+    save(); transactionForm.reset();
 };
 
-window.editTransaction = i => {
+window.editTransaction=i=>{
     const t = transactions[i];
-    tName.value = t.name;
-    tAmount.value = t.amount;
-    tType.value = t.type;
-    tCategory.value = t.category;
-    tDate.value = t.date;
-    tCurrency.value = t.currency;
-    transactionForm.dataset.editIndex = i;
+    tName.value=t.name; tAmount.value=t.amount; tType.value=t.type; tCategory.value=t.category; tDate.value=t.date;
+    tAnnotation.value=t.annotation||""; tCurrency.value=t.currency; transactionForm.dataset.editIndex=i;
 };
 
-window.delT = i => { transactions.splice(i,1); save(); };
+window.delT=i=>{transactions.splice(i,1); save();};
 
 // === INVESTMENTS ===
-investmentForm.onsubmit = e => {
+investmentForm.onsubmit=e=>{
     e.preventDefault();
-    const idx = investmentForm.dataset.editIndex;
-    if(idx !== undefined){
-        const inv = investments[idx];
-        inv.name = iName.value;
-        inv.principal = parseFloat(iAmount.value);
-        inv.interest = parseFloat(iInterest.value);
-        inv.startDate = iStartDate.value;
-        inv.currency = iCurrency.value;
-        delete investmentForm.dataset.editIndex;
-    } else {
-        investments.push({name:iName.value,principal:parseFloat(iAmount.value),interest:parseFloat(iInterest.value),startDate:iStartDate.value,currency:iCurrency.value,monthlyInterests:{}});
-    }
-    save();
-    investmentForm.reset();
+    const idx=investmentForm.dataset.editIndex;
+    if(idx!==undefined){
+        const inv=investments[idx];
+        inv.name=iName.value; inv.principal=parseFloat(iAmount.value); inv.interest=parseFloat(iInterest.value);
+        inv.startDate=iStartDate.value; inv.currency=iCurrency.value; delete investmentForm.dataset.editIndex;
+    } else investments.push({name:iName.value, principal:parseFloat(iAmount.value), interest:parseFloat(iInterest.value), startDate:iStartDate.value, currency:iCurrency.value, monthlyInterests:{}});
+    save(); investmentForm.reset();
 };
 
-window.editInvestment = i => {
-    const inv = investments[i];
-    iName.value = inv.name;
-    iAmount.value = inv.principal;
-    iInterest.value = inv.interest;
-    iStartDate.value = inv.startDate || "";
-    iCurrency.value = inv.currency;
-    investmentForm.dataset.editIndex = i;
+window.editInvestment=i=>{
+    const inv=investments[i]; iName.value=inv.name; iAmount.value=inv.principal; iInterest.value=inv.interest;
+    iStartDate.value=inv.startDate||""; iCurrency.value=inv.currency; investmentForm.dataset.editIndex=i;
 };
 
-window.deleteInvestment = i => { investments.splice(i,1); save(); };
+window.deleteInvestment=i=>{investments.splice(i,1); save();};
 
 // === MONTHLY INTEREST ===
-addMonthlyInterestBtn.onclick = ()=>{
-    const idx = selectInvestment.value;
-    if(idx==="") return alert("Sélectionnez un investissement");
-    const month = interestMonth.value;
-    const paidDate = interestPaidDate.value;
-    if(!month || !paidDate) return alert("Mois et date requis");
-    const inv = investments[idx];
-    const amt = parseFloat(interestAmount.value) || inv.principal*inv.interest/100;
-    inv.monthlyInterests[month] = {amount: amt, paidDate};
-    interestMonth.value=""; interestPaidDate.value=""; interestAmount.value="";
+addMonthlyInterestBtn.onclick=()=>{
+    const idx=selectInvestment.value; if(idx==="") return alert("Sélectionnez un investissement");
+    const month=interestMonth.value; const paidDate=interestPaidDate.value; if(!month||!paidDate) return alert("Mois et date requis");
+    const inv=investments[idx]; const amt=parseFloat(interestAmount.value)||inv.principal*inv.interest/100;
+    inv.monthlyInterests[month]={amount:amt, paidDate}; interestMonth.value=""; interestPaidDate.value=""; interestAmount.value="";
     save();
 };
 
-window.deleteInterest = (invIdx, month) => { delete investments[invIdx].monthlyInterests[month]; save(); };
-window.editInterest = (invIdx, month) => {
-    const inv = investments[invIdx];
-    const data = inv.monthlyInterests[month];
-    selectInvestment.value = invIdx;
-    interestMonth.value = month;
-    interestPaidDate.value = data.paidDate;
-    interestAmount.value = data.amount;
+window.deleteInterest=(invIdx,month)=>{delete investments[invIdx].monthlyInterests[month]; save();};
+window.editInterest=(invIdx,month)=>{
+    const inv=investments[invIdx]; const data=inv.monthlyInterests[month];
+    selectInvestment.value=invIdx; interestMonth.value=month; interestPaidDate.value=data.paidDate; interestAmount.value=data.amount;
 };
 
 // === RENDER ===
-function getAccumulatedInterest(inv){ return Object.values(inv.monthlyInterests||{}).reduce((a,b)=>a+b.amount,0); }
+function getAccumulatedInterest(inv){return Object.values(inv.monthlyInterests||{}).reduce((a,b)=>a+b.amount,0);}
 
 function renderTransactions(){
-    const tbody = document.querySelector("#transaction-table tbody");
-    tbody.innerHTML = "";
-    transactions.forEach((t,i)=>{
-        tbody.innerHTML += `<tr>
-            <td>${t.name}</td><td>${t.amount}</td><td>${t.type}</td><td>${t.category}</td><td>${t.date}</td><td>${t.currency}</td>
-            <td><button onclick="editTransaction(${i})">✏️</button> <button onclick="delT(${i})">❌</button></td>
-        </tr>`;
-    });
+    const tbody=document.querySelector("#transaction-table tbody"); tbody.innerHTML="";
+    transactions.forEach((t,i)=>{tbody.innerHTML+=`<tr><td>${t.name}</td><td>${t.amount}</td><td>${t.type}</td><td>${t.category}</td><td>${t.date}</td><td>${t.annotation||""}</td><td>${t.currency}</td><td><button onclick="editTransaction(${i})">✏️</button> <button onclick="delT(${i})">❌</button></td></tr>`;});
 }
 
 function renderInvestments(){
-    const tbody = document.querySelector("#investment-table tbody");
-    tbody.innerHTML = "";
-    investments.forEach((inv,i)=>{
-        tbody.innerHTML += `<tr>
-            <td>${inv.name}</td>
-            <td>${inv.principal}</td>
-            <td>${inv.interest}%</td>
-            <td>${inv.startDate || ""}</td>
-            <td>${inv.currency}</td>
-            <td>${getAccumulatedInterest(inv).toFixed(2)}</td>
-            <td><button onclick="editInvestment(${i})">✏️</button> <button onclick="deleteInvestment(${i})">❌</button></td>
-        </tr>`;
-    });
+    const tbody=document.querySelector("#investment-table tbody"); tbody.innerHTML="";
+    investments.forEach((inv,i)=>{tbody.innerHTML+=`<tr><td>${inv.name}</td><td>${inv.principal}</td><td>${inv.interest}%</td><td>${inv.startDate||""}</td><td>${inv.currency}</td><td>${getAccumulatedInterest(inv).toFixed(2)}</td><td><button onclick="editInvestment(${i})">✏️</button> <button onclick="deleteInvestment(${i})">❌</button></td></tr>`;});
     updateInvestmentSelect();
 }
 
 function renderMonthlyInterests(){
-    const tbody = document.querySelector("#interest-table tbody");
-    tbody.innerHTML = "";
-    investments.forEach((inv, i)=>{
-        Object.entries(inv.monthlyInterests || {}).forEach(([month, data])=>{
-            tbody.innerHTML += `<tr>
-                <td>${inv.name}</td><td>${month}</td><td>${data.paidDate}</td><td>${data.amount.toFixed(2)} ${inv.currency}</td>
-                <td><button onclick="editInterest(${i},'${month}')">✏️</button> <button onclick="deleteInterest(${i},'${month}')">❌</button></td>
-            </tr>`;
-        });
-    });
+    const tbody=document.querySelector("#interest-table tbody"); tbody.innerHTML="";
+    investments.forEach((inv,i)=>Object.entries(inv.monthlyInterests||{}).forEach(([month,data])=>{
+        tbody.innerHTML+=`<tr><td>${inv.name}</td><td>${month}</td><td>${data.paidDate}</td><td>${data.amount.toFixed(2)} ${inv.currency}</td><td><button onclick="editInterest(${i},'${month}')">✏️</button> <button onclick="deleteInterest(${i},'${month}')">❌</button></td></tr>`;
+    }));
 }
 
 function updateInvestmentSelect(){
-    selectInvestment.innerHTML = `<option value="">-- Sélectionner investissement --</option>`;
-    investments.forEach((inv,i)=>{
-        const opt = document.createElement("option");
-        opt.value=i; opt.textContent=inv.name;
-        selectInvestment.appendChild(opt);
-    });
+    selectInvestment.innerHTML=`<option value="">-- Sélectionner investissement --</option>`;
+    investments.forEach((inv,i)=>{const opt=document.createElement("option"); opt.value=i; opt.textContent=inv.name; selectInvestment.appendChild(opt);});
 }
 
 // === EXPORT CSV ===
-document.getElementById("export-csv-btn").onclick = ()=>{
-    let csv = "Transactions\nNom,Montant,Type,Catégorie,Date,Devise\n";
-    transactions.forEach(t=>csv+=`${t.name},${t.amount},${t.type},${t.category},${t.date},${t.currency}\n`);
+document.getElementById("export-csv-btn").onclick=()=>{
+    let csv="Transactions\nNom,Montant,Type,Catégorie,Date,Annotation,Devise\n";
+    transactions.forEach(t=>csv+=`${t.name},${t.amount},${t.type},${t.category},${t.date},${t.annotation||""},${t.currency}\n`);
     csv+="\nInvestissements\nNom,Principal,Taux %,Date début,Devise,Intérêt cumulé\n";
     investments.forEach(inv=>csv+=`${inv.name},${inv.principal},${inv.interest},${inv.startDate},${inv.currency},${getAccumulatedInterest(inv).toFixed(2)}\n`);
     csv+="\nIntérêts Mensuels\nInvestissement,Mois,Date paiement,Montant\n";
     investments.forEach(inv=>Object.entries(inv.monthlyInterests||{}).forEach(([month,d])=>csv+=`${inv.name},${month},${d.paidDate},${d.amount.toFixed(2)}\n`));
-    const a=document.createElement("a");
-    a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
-    a.download="export_finances.csv";
-    a.click();
+    const a=document.createElement("a"); a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv); a.download="export_finances.csv"; a.click();
 };
 
 // === CHARTS ===
 function renderCharts(){
     new Chart(document.getElementById("transactionsChart"),{type:"doughnut",
         data:{labels:["Income","Expense"],datasets:[{data:[transactions.filter(t=>t.type==="income").reduce((a,b)=>a+b.amount,0),transactions.filter(t=>t.type==="expense").reduce((a,b)=>a+b.amount,0)],backgroundColor:["#4CAF50","#F44336"]}]}});
-
     new Chart(document.getElementById("investmentsChart"),{type:"bar",
         data:{labels:investments.map(i=>i.name),datasets:[{label:"Capital + Intérêts",data:investments.map(i=>i.principal+getAccumulatedInterest(i)),backgroundColor:"#2196F3"}]}});
 }
 
 // === SAVE ===
-async function save(){
-    renderTransactions(); renderInvestments(); renderMonthlyInterests();
-    const user = auth.currentUser;
-    if(user) await setDoc(doc(db,"users",user.uid),{transactions,investments});
-}
+async function save(){ renderTransactions(); renderInvestments(); renderMonthlyInterests(); const user=auth.currentUser; if(user) await setDoc(doc(db,"users",user.uid),{transactions,investments});}
 
 // === INIT ===
 document.getElementById("tab-transactions").click();
