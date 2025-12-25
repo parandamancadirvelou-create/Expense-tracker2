@@ -18,6 +18,7 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
 
 <h1>Expense & Investment Tracker</h1>
 
+<!-- AUTH -->
 <div id="authBox">
   <input id="email" type="email" placeholder="Email"><br>
   <input id="password" type="password" placeholder="Mot de passe"><br>
@@ -25,6 +26,7 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
   <button id="register">Créer un compte</button>
 </div>
 
+<!-- APP -->
 <div id="appBox" style="display:none;">
 
 <div class="controls">
@@ -38,7 +40,7 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
   <button id="tab-charts">Graphiques</button>
 </div>
 
-<!-- Transactions -->
+<!-- TRANSACTIONS -->
 <div id="transactions-tab" class="tab-content" style="display:block;">
 <h3>Ajouter / Éditer Transaction</h3>
 <form id="transaction-form">
@@ -74,7 +76,7 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
 </table>
 </div>
 
-<!-- Investments -->
+<!-- INVESTMENTS -->
 <div id="investments-tab" class="tab-content" style="display:none;">
 <h3>Ajouter / Éditer Investissement</h3>
 <form id="investment-form">
@@ -132,6 +134,7 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
 </table>
 </div>
 
+<!-- CHARTS -->
 <div id="charts-tab" class="tab-content" style="display:none;">
   <canvas id="transactionsChart" width="400" height="200"></canvas>
   <canvas id="investmentsChart" width="400" height="200"></canvas>
@@ -139,6 +142,28 @@ th, td { border:1px solid #333; padding:6px; text-align:center; }
 
 </div>
 
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyChlTQgk-BvdNf8jRskBY-kos_kCeQIWW0",
+  authDomain: "expense-traker-247d1.firebaseapp.com",
+  projectId: "expense-traker-247d1",
+  storageBucket: "expense-traker-247d1.appspot.com",
+  messagingSenderId: "1083688124128",
+  appId: "1:1083688124128:web:4e5c5c0313c5c8fe3cda85",
+  measurementId: "G-W0XV7P2X2H"
+};
+
+window.app = initializeApp(firebaseConfig);
+window.auth = getAuth(window.app);
+window.db = getFirestore(window.app);
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script type="module" src="script.js"></script>
 </body>
 </html>
