@@ -74,6 +74,7 @@ onAuthStateChanged(auth, async user => {
             }
         });
     } else await setDoc(userDoc, { transactions: [], investments: [] });
+
     save();
 });
 
@@ -235,33 +236,31 @@ function renderTransactionsChart() {
     const ctx = document.getElementById("transactionsChart").getContext("2d");
     transactionsChart = new Chart(ctx, {
         type: "doughnut",
-        data: {
-            labels: ["Income", "Expense"],
-            datasets: [{ data: [income, expense], backgroundColor: ["#4CAF50", "#F44336"] }]
-        },
+        data: { labels: ["Income", "Expense"], datasets: [{ data: [income, expense], backgroundColor: ["#4CAF50", "#F44336"] }] },
         options: { responsive: true, maintainAspectRatio: false }
     });
 }
 
 function renderInvestmentsChart() {
     if (investmentsChart) investmentsChart.destroy();
-    const labels = investments.map(i => i.name);
-    const data = investments.map(i => i.principal + calculateAccumulatedInterest(i));
-
     const ctx = document.getElementById("investmentsChart").getContext("2d");
     investmentsChart = new Chart(ctx, {
         type: "bar",
         data: {
-            labels: labels,
-            datasets: [{ label: "Capital + Intérêts", data: data, backgroundColor: "#2196F3" }]
+            labels: investments.map(i => i.name),
+            datasets: [{
+                label: "Capital + Intérêts",
+                data: investments.map(i => i.principal + calculateAccumulatedInterest(i)),
+                backgroundColor: "#2196F3"
+            }]
         },
         options: { responsive: true, maintainAspectRatio: false }
     });
 }
 
 function updateCharts() {
-    if (document.getElementById("transactionsChart")) renderTransactionsChart();
-    if (document.getElementById("investmentsChart")) renderInvestmentsChart();
+    renderTransactionsChart();
+    renderInvestmentsChart();
 }
 
 // ===== SAVE =====
