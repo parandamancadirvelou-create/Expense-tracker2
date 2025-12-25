@@ -42,6 +42,9 @@ const interestAmount = document.getElementById("interest-amount");
 const interestAnnotation = document.getElementById("interest-annotation");
 const addMonthlyInterestBtn = document.getElementById("add-monthly-interest");
 
+// Export CSV
+const exportCSVBtn = document.getElementById("export-csv-btn");
+
 let transactionsChart, investmentsChart;
 
 // ===== AUTH =====
@@ -52,12 +55,10 @@ logoutBtn.onclick = () => signOut(auth);
 // ===== TRACE DATA =====
 onAuthStateChanged(auth, async user => {
     if (!user) {
-        console.log("Utilisateur non connecté");
         document.getElementById("authBox").style.display = "block";
         document.getElementById("appBox").style.display = "none";
         return;
     }
-    console.log("Utilisateur connecté :", user.uid);
     document.getElementById("authBox").style.display = "none";
     document.getElementById("appBox").style.display = "block";
 
@@ -65,11 +66,8 @@ onAuthStateChanged(auth, async user => {
     const snap = await getDoc(userDoc);
     if (snap.exists()) {
         const data = snap.data();
-        console.log("Données récupérées depuis Firestore :", data);
-
         transactions = data.transactions || [];
         investments = data.investments || [];
-
         investments.forEach(inv => {
             if (!inv.annotation) inv.annotation = "";
             if (!inv.monthlyInterests) inv.monthlyInterests = {};
@@ -77,13 +75,11 @@ onAuthStateChanged(auth, async user => {
                 if (!inv.monthlyInterests[month].annotation) inv.monthlyInterests[month].annotation = "";
             }
         });
-
         renderTransactions();
         renderInvestments();
         renderMonthlyInterests();
         updateCharts();
     } else {
-        console.log("Aucun document Firestore trouvé, création d'un nouveau document");
         await setDoc(userDoc, { transactions: [], investments: [] }, { merge: true });
     }
 });
@@ -283,7 +279,7 @@ async function save() {
     updateCharts();
 
     const user = auth.currentUser;
-    if (!user) { console.log("Aucun utilisateur connecté, save annulée"); return; }
+    if (!user) return;
 
     const userDoc = doc(db, "users", user.uid);
     const snap = await getDoc(userDoc);
@@ -291,8 +287,6 @@ async function save() {
 
     if (snap.exists()) {
         const oldData = snap.data();
-        console.log("Anciennes données Firestore :", oldData);
-
         data.investments = investments.map((inv, i) => ({
             ...oldData.investments?.[i],
             ...inv,
@@ -300,9 +294,37 @@ async function save() {
         }));
     }
 
-    console.log("Données sauvegardées sur Firestore :", data);
     await setDoc(userDoc, data, { merge: true });
 }
 
+// ===== EXPORT CSV =====
+function exportCSV() {
+    let rows = [["Type","Nom","Montant","Devise","Catégorie","Date","Annotation","Mois Intérêt (si investi)","Date Paiement"]];
+
+    // Transactions
+    transactions.forEach(t => {
+        rows.push(["Transaction", t.name, t.amount, t.currency, t.category, t.date, t.annotation || "", "", ""]);
+    });
+
+    // Investments
+    investments.forEach(inv => {
+        rows.push(["Investissement", inv.name, inv.principal, inv.currency, "", inv.startDate, inv.annotation || "", "", ""]);
+        for (const [month, mData] of Object.entries(inv.monthlyInterests || {})) {
+            rows.push(["Intérêt Mensuel", inv.name, mData.amount, inv.currency, "", "", mData.annotation || "", month, mData.paidDate]);
+        }
+    });
+
+    const csvContent = rows.map(r => r.join(";")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "export_finances.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 // ===== INIT =====
+exportCSVBtn.addEventListener("click", exportCSV);
 document.getElementById("tab-transactions").click();
